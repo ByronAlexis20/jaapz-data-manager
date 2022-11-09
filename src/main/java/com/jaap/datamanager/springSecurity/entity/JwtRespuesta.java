@@ -14,6 +14,7 @@ public class JwtRespuesta {
 	private String nombres;
 	private String apellidos;
 	private Perfil perfil;
+	private String usuario;
 	private List<Permiso> permisos;
 
 	public JwtRespuesta() {
@@ -21,7 +22,7 @@ public class JwtRespuesta {
 	}
 
 	public JwtRespuesta(String token, Integer codUsuario, String identificacion, String nombres,
-			String apellidos, Perfil perfil, List<Permiso> permisos) {
+			String apellidos, Perfil perfil, String usuario, List<Permiso> permisos) {
 		super();
 		this.token = token;
 		this.codUsuario = codUsuario;
@@ -30,6 +31,7 @@ public class JwtRespuesta {
 		this.apellidos = apellidos;
 		this.perfil = perfil;
 		this.permisos = permisos;
+		this.usuario = usuario;
 	}
 
 	public String getToken() {
@@ -94,6 +96,14 @@ public class JwtRespuesta {
 
 	public void setPermisos(List<Permiso> permisos) {
 		this.permisos = permisos;
+	}
+
+	public String getUsuario() {
+		return usuario;
+	}
+
+	public void setUsuario(String usuario) {
+		this.usuario = usuario;
 	}
 
 }

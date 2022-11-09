@@ -18,4 +18,10 @@ public interface IClienteDAO extends CrudRepository<Cliente, Integer> {
 	@Query("Select c from Cliente c where c.cedula = ?1 and c.id <> ?2")
 	public List<Cliente> buscarPorCedula(String cedula, Integer id);
 	
+	@Query("Select c from Cliente c where c.estado = ?1")
+	public List<Cliente> buscarClientesPorEstado(String estado);
+	
+	@Query(value = "select public.fun_buscar_cliente_planillar(?1, ?2);", nativeQuery = true)
+	public String consultarClientePlanillar(Integer idanio, Integer idmes);
+	
 }

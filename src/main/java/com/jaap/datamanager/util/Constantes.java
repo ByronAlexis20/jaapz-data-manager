@@ -8,4 +8,6 @@ public class Constantes {
 	public static final String mensajeNoDatos = "No se encontraron datos";
 	public static final String mensajeErrorGrabar = "Error al grabar los datos";
 	public static final String mensajeOkGrabar = "Datos grabados con éxito";
+	
+	public static String rutaArchivos = FuncionesGenerales.class.getResource("/static/").toString();
 }

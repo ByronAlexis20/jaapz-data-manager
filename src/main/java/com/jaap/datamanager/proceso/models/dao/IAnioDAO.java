@@ -9,7 +9,7 @@ import com.jaap.datamanager.proceso.models.entity.Anio;
 
 public interface IAnioDAO extends CrudRepository<Anio, Integer> {
 
-	@Query("Select a from Anio a where a.estado = 'A'")
+	@Query("Select a from Anio a where a.estado = 'A' order by a.anio desc")
 	public List<Anio> buscarAnios();
 	
 	@Query("Select a from Anio a where a.estado = 'A' and a.id = ?1")

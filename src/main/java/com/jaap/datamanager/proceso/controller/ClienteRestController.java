@@ -1,6 +1,7 @@
 package com.jaap.datamanager.proceso.controller;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -93,6 +94,34 @@ public class ClienteRestController {
 		response.put("mensaje", "Grabado correctamente");
 		response.put("usuario", data);
 		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
+	}
+	
+	@GetMapping(value = "/buscarClientesActivos")
+	public ResponseEntity<?> buscarClientesActivos() {
+		List<Cliente> listaClientes = null;
+		Map<String, Object> response = new HashMap<>();
+		try {
+			listaClientes = this.clienteService.buscarClientesPorEstado("A");
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<Cliente>>(listaClientes, HttpStatus.OK);
+	}
+	
+	@GetMapping(value = "/buscarClientesPlanillar/{idanio}/{idmes}")
+	public ResponseEntity<?> buscarClientesPlanillar(@PathVariable Integer idanio, @PathVariable Integer idmes) {
+		List<LinkedHashMap<String, Object>> listaClientes = null;
+		Map<String, Object> response = new HashMap<>();
+		try {
+			listaClientes = this.clienteService.buscarClientesPlanillar(idanio, idmes);
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(listaClientes, HttpStatus.OK);
 	}
 	
 }

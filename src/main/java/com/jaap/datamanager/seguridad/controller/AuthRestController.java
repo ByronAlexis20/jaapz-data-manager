@@ -71,6 +71,7 @@ public class AuthRestController {
 													usu.getNombres(), 
 													usu.getApellidos(),
 													usu.getPerfil(),
+													usu.getUsuario(),
 													listaPermiso
 													));
 	}
