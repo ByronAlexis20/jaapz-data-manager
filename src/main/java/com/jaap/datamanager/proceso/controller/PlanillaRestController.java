@@ -1,6 +1,8 @@
 package com.jaap.datamanager.proceso.controller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -85,6 +87,52 @@ public class PlanillaRestController {
 		byte[] bytes = genera.generarReportePDF("rptPlanillaConsumo", params, source);
 		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
 				.filename("rptPlanillaConsumo" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+
+	}
+	
+	@GetMapping(value = "/consultarplanillasporcliente/{idcliente}")
+	public ResponseEntity<?> validardatoscliente(@PathVariable Integer idcliente) {
+		List<LinkedHashMap<String, Object>> listaClientes = null;
+		Map<String, Object> response = new HashMap<>();
+		try {
+			listaClientes = this.planillaService.consultarPlanillasPorCliente(idcliente);
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(listaClientes, HttpStatus.OK);
+	}
+	
+	@GetMapping(value = "/eliminarplanillaporid/{id}")
+	public ResponseEntity<?> eliminarplanillaporid(@PathVariable Integer id) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			response = this.planillaService.eliminarPlanillaPorId(id);
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
+	}
+	
+	@GetMapping(value = "/imprimirdeudas")
+	public ResponseEntity<byte[]> imprimirDeudas() throws JsonMappingException, JsonProcessingException {
+		List<LinkedHashMap<String, Object>> dataFinal = new ArrayList<>();
+		dataFinal = this.planillaService.consultarDeudas();
+		FuncionesGenerales genera = new FuncionesGenerales();
+		
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptDeudas", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptDeudas" + ".pdf").build();
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentDisposition(contentDisposition);
 		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)

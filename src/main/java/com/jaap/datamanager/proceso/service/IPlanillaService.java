@@ -1,5 +1,6 @@
 package com.jaap.datamanager.proceso.service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -12,4 +13,10 @@ public interface IPlanillaService {
 	public List<Map<String, Object>> imprimirPlanilla(Integer idplanilla);
 	
 	public List<Object[]> consultarPlanillaPorClienteAnioMes(Integer idcliente, Integer idanio, Integer idmes);
+	
+	public List<LinkedHashMap<String, Object>> consultarPlanillasPorCliente(Integer idcliente);
+	
+	public Map<String, Object> eliminarPlanillaPorId(Integer id);
+	
+	public List<LinkedHashMap<String, Object>> consultarDeudas();
 }

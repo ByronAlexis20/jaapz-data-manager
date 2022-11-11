@@ -71,4 +71,21 @@ public class ClienteImpl implements IClienteService {
 		return retorno;
 	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional(readOnly = true)
+	public List<LinkedHashMap<String, Object>> consultarClientes() {
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.clienteDAO.consultarClientes();
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+
 }

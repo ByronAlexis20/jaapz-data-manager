@@ -21,4 +21,13 @@ public interface IPlanillaDAO extends CrudRepository<Planilla, Integer> {
 	@Query(value = "select pl.id from tbl_cliente cl, tbl_planilla pl where cl.id = pl.idcliente and cl.id = ?1 and pl.idanio = ?2 and pl.idmes = ?3 ", nativeQuery = true)
 	public List<Object[]> consultarPlanillaPorClienteAnioMes(Integer idcliente, Integer idanio, Integer idmes);
 	
+	@Query(value = "select public.fun_consultar_planillas_clientes( ?1 );", nativeQuery = true)
+	public String consultarPlanillasPorCliente(Integer id);
+	
+	@Query(value = "select public.fun_eliminar_planilla_por_id( ?1 );", nativeQuery = true)
+	public Integer eliminarPlanillaPorId(Integer id);
+	
+	@Query(value = "select public.fun_consultar_deudas();", nativeQuery = true)
+	public String consultarDeudas();
+	
 }

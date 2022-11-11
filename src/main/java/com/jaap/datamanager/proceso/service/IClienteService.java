@@ -12,5 +12,5 @@ public interface IClienteService {
 	public Cliente grabarCliente(Cliente cli);
 	public List<Cliente> buscarClientesPorEstado(String estado);
 	public List<LinkedHashMap<String, Object>> buscarClientesPlanillar(Integer idAnio, Integer idMes);
-	
+	public List<LinkedHashMap<String, Object>> consultarClientes();
 }

@@ -124,4 +124,17 @@ public class ClienteRestController {
 		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(listaClientes, HttpStatus.OK);
 	}
 	
+	@GetMapping(value = "/consultarClientes")
+	public ResponseEntity<?> consultarClientes() {
+		List<LinkedHashMap<String, Object>> listaClientes = null;
+		Map<String, Object> response = new HashMap<>();
+		try {
+			listaClientes = this.clienteService.consultarClientes();
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(listaClientes, HttpStatus.OK);
+	}
 }

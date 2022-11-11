@@ -2,6 +2,7 @@ package com.jaap.datamanager.proceso.service.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -77,6 +78,60 @@ public class PlanillaImpl implements IPlanillaService {
 	@Transactional(readOnly = true)
 	public List<Object[]> consultarPlanillaPorClienteAnioMes(Integer idcliente, Integer idanio, Integer idmes) {
 		return this.planillaDAO.consultarPlanillaPorClienteAnioMes(idcliente, idanio, idmes);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional(readOnly = true)
+	public List<LinkedHashMap<String, Object>> consultarPlanillasPorCliente(Integer idcliente) {
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarPlanillasPorCliente(idcliente);
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+
+	@Override
+	@Transactional
+	public Map<String, Object> eliminarPlanillaPorId(Integer id) {
+		Map<String, Object> respuesta = new HashMap<>();
+		try {
+			Integer res = this.planillaDAO.eliminarPlanillaPorId(id);
+			if(res == 1) {
+				respuesta.put("estado", "ok");
+				respuesta.put("mensaje", "Planilla eliminada correctamente");
+			}else {
+				respuesta.put("estado", "error");
+				respuesta.put("mensaje", "Error al eliminar");
+			}
+		}catch(Exception ex) {
+			respuesta.put("estado", "error");
+			respuesta.put("mensaje", "Error al eliminar");
+		}
+		return respuesta;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarDeudas() {
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarDeudas();
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
 	}
 
 }

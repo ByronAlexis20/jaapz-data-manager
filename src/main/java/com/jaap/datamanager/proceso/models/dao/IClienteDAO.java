@@ -24,4 +24,6 @@ public interface IClienteDAO extends CrudRepository<Cliente, Integer> {
 	@Query(value = "select public.fun_buscar_cliente_planillar(?1, ?2);", nativeQuery = true)
 	public String consultarClientePlanillar(Integer idanio, Integer idmes);
 	
+	@Query(value = "select public.fun_buscar_clientes();", nativeQuery = true)
+	public String consultarClientes();
 }
