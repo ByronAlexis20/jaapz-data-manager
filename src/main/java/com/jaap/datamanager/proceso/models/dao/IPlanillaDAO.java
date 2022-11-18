@@ -30,4 +30,10 @@ public interface IPlanillaDAO extends CrudRepository<Planilla, Integer> {
 	@Query(value = "select public.fun_consultar_deudas();", nativeQuery = true)
 	public String consultarDeudas();
 	
+	@Query(value = "select public.fun_buscar_detalle_planilla( ?1 );", nativeQuery = true)
+	public String consultarDetallePlanilla(Integer idplanilla);
+	
+	@Query(value = "select public.fun_consultar_deudas_clientes( ?1 );", nativeQuery = true)
+	public String consultardeudascliente(Integer idcliente);
+	
 }

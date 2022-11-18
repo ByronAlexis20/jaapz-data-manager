@@ -1,6 +1,8 @@
 package com.jaap.datamanager.proceso.controller;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -74,14 +76,14 @@ public class PlanillaRestController {
 		for(Object[] obj : buscarPlanilla) {
 			idplanilla = Integer.parseInt(obj[0].toString());
 		}
-		
+		System.out.println("numero de planilla " + idplanilla);
 		List<Map<String, Object>> dataFinal = new ArrayList<>();
 		dataFinal = this.planillaService.imprimirPlanilla(idplanilla);
 		FuncionesGenerales genera = new FuncionesGenerales();
 		
 		Map<String, Object> params = empresaService.consultarDatosEmpresa();
 		String numeroPlanilla = "0000000" + idplanilla;
-		numeroPlanilla = numeroPlanilla.substring(numeroPlanilla.length() - 4, numeroPlanilla.length());
+		numeroPlanilla = numeroPlanilla.substring(numeroPlanilla.length() - 9, numeroPlanilla.length());
 		params.put("noplanilla", "No. " + numeroPlanilla);
 		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
 		byte[] bytes = genera.generarReportePDF("rptPlanillaConsumo", params, source);
@@ -121,13 +123,22 @@ public class PlanillaRestController {
 		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
 	}
 	
-	@GetMapping(value = "/imprimirdeudas")
-	public ResponseEntity<byte[]> imprimirDeudas() throws JsonMappingException, JsonProcessingException {
+	@SuppressWarnings("unchecked")
+	@GetMapping(value = "/imprimirdeudas/{usuario}")
+	public ResponseEntity<byte[]> imprimirDeudas( @PathVariable String usuario ) throws JsonMappingException, JsonProcessingException {
+		Map<String, Object> data = new HashMap<>();
 		List<LinkedHashMap<String, Object>> dataFinal = new ArrayList<>();
-		dataFinal = this.planillaService.consultarDeudas();
+		data = this.planillaService.consultarDeudas();
+		dataFinal = (List<LinkedHashMap<String, Object>>) data.get("datos");
+		String totalgeneral = data.get("total").toString();
 		FuncionesGenerales genera = new FuncionesGenerales();
-		
+		Date fecha = new Date();
+		String fechaNueva = new SimpleDateFormat("EEEE, dd 'de' MMMM 'de' yyyy").format(fecha);
 		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("nombrereporte", "USUARIOS CON CUENTA PENDIENTE DE COBRO");
+		params.put("fecha", fechaNueva);
+		params.put("usuario", usuario);
+		params.put("totaldeuda", totalgeneral);
 		
 		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
 		byte[] bytes = genera.generarReportePDF("rptDeudas", params, source);
@@ -138,5 +149,59 @@ public class PlanillaRestController {
 		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
 				.body(bytes);
 
+	}
+	
+	@GetMapping(value = "/consultardetalleplanilla/{idcliente}/{idanio}/{idmes}")
+	public ResponseEntity<?> consultardetalleplanilla( @PathVariable Integer idcliente, @PathVariable Integer idanio, @PathVariable Integer idmes ) {
+		List<LinkedHashMap<String, Object>> listaClientes = null;
+		Map<String, Object> response = new HashMap<>();
+		try {
+			List<Object[]> buscarPlanilla = this.planillaService.consultarPlanillaPorClienteAnioMes(idcliente, idanio, idmes);
+			Integer idplanilla = 0;
+			for(Object[] obj : buscarPlanilla) {
+				idplanilla = Integer.parseInt(obj[0].toString());
+			}
+			System.out.println("numero de planilla " + idplanilla);
+			
+			listaClientes = this.planillaService.consultarDetallePlanilla(idplanilla);
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(listaClientes, HttpStatus.OK);
+	}
+	
+	@PostMapping(value = "/grabardetalleplanilla")
+	public ResponseEntity<?> grabardetalleplanilla( @RequestBody Map<String, Object> param ) {
+		Map<String, Object> response = null;
+		try {
+			response = this.planillaService.grabarDetallePlanilla(param);
+		} catch (DataAccessException e) {
+			response.put("estado", "error");
+			response.put("mensaje", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
+	}
+	
+	@GetMapping(value = "/consultardeudascliente/{idcliente}")
+	public ResponseEntity<?> consultardeudascliente( @PathVariable Integer idcliente ) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			List<LinkedHashMap<String, Object>> listaClientes = this.planillaService.consultarDeudasCliente(idcliente);
+			if(listaClientes.size() == 0) {
+				response.put("status", "error");
+				response.put("mensaje", "Cliente No tiene planillas pendientes");
+			}else {
+				response.put("status", "ok");
+				response.put("data", listaClientes);
+			}
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
 	}
 }

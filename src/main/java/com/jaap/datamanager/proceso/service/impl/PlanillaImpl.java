@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jaap.datamanager.proceso.models.dao.IPlanillaDAO;
 import com.jaap.datamanager.proceso.service.IPlanillaService;
+import com.jaap.datamanager.util.CodigosEstandares;
+import com.jaap.datamanager.util.ConvertirNumeroLetras;
 
 @Service
 public class PlanillaImpl implements IPlanillaService {
@@ -44,8 +46,30 @@ public class PlanillaImpl implements IPlanillaService {
 	public Map<String, Object> grabarPlanilla(Map<String, Object> param) {
 		Map<String, Object> response = new HashMap<>();
 		try {
-			JSONObject obj = new JSONObject(param);
-			Integer resultado = this.planillaDAO.grabarPlanilla(obj.toString());
+			//consumo
+			Integer lecturaanterior = Integer.parseInt( param.get("lecturaanterior").toString() );
+			Integer lecturaactual = Integer.parseInt( param.get("lecturaactual").toString() );
+			Integer lecturaingresada = Integer.parseInt( param.get("lectura").toString() );
+			System.out.println("lectura anterior " + lecturaanterior );
+			System.out.println("lectura actual " + lecturaactual );
+			System.out.println("lectura ingresada " + lecturaingresada );
+			if( lecturaanterior.equals(lecturaingresada) ) {
+				System.out.println("lectura actual es igual a la lectura anterior");
+				Integer consumominimo = Integer.parseInt( param.get("consumominimo").toString() );
+				ConvertirNumeroLetras convertir = new ConvertirNumeroLetras();
+				param.put("consumo", consumominimo);
+				param.put("totalletras", convertir.Convertir(String.valueOf(consumominimo), true));
+			}else {
+				System.out.println("no son iguales");
+				Integer consumo = lecturaingresada - lecturaanterior;
+				ConvertirNumeroLetras convertir = new ConvertirNumeroLetras();
+				param.put("consumo", consumo);
+				param.put("totalletras", convertir.Convertir(String.valueOf(consumo), true));
+			}
+			ObjectMapper objectMapper = new ObjectMapper();
+			String jsonString = objectMapper.writeValueAsString(param);
+			
+			Integer resultado = this.planillaDAO.grabarPlanilla(jsonString);
 			if(resultado == 1) {
 				response.put("estado", "ok");
 				response.put("mensaje", "Planilla grabado correctamente");
@@ -120,11 +144,88 @@ public class PlanillaImpl implements IPlanillaService {
 	@SuppressWarnings("unchecked")
 	@Override
 	@Transactional
-	public List<LinkedHashMap<String, Object>> consultarDeudas() {
-		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+	public Map<String, Object> consultarDeudas() {
+		Map<String, Object> retorno = new HashMap<>();
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			String data = this.planillaDAO.consultarDeudas();
+			if(data != null) {
+				List<LinkedHashMap<String, Object>> ret = objectMapper.readValue(data, List.class);
+				for(LinkedHashMap<String, Object> obj : ret) {
+					retorno.put("datos", (List<LinkedHashMap<String, Object>>) obj.get("datos"));
+					retorno.put("total", obj.get("totalgeneral"));
+				}
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional(readOnly = true)
+	public List<LinkedHashMap<String, Object>> consultarDetallePlanilla(Integer idplanilla) {
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarDetallePlanilla(idplanilla);
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public Map<String, Object> grabarDetallePlanilla(Map<String, Object> param) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			Integer idplanilla = 0;
+			Double tsubtotal = 0.0, tdescuento = 0.0, ttotal = 0.0;
+			List<Map<String, Object>> detalle = (List<Map<String, Object>>) param.get("detalle");
+			for(Map<String, Object> det : detalle) {
+				idplanilla = Integer.parseInt( det.get("idplanilla").toString() );
+				if(Integer.parseInt(param.get("iddocumento").toString()) == CodigosEstandares.idDocumentoDescuento) {
+					tdescuento = tdescuento + Double.valueOf( det.get("subtotal").toString() );
+				}else {
+					tsubtotal = tsubtotal + Double.valueOf( det.get("subtotal").toString() );
+				}
+			}
+			ttotal = tsubtotal - tdescuento;
+			//Documento
+			Map<String, Object> documento = (Map<String, Object>) param.get("documento");
+			//carcular el total ingresado
+			Double valorUnit = Double.parseDouble( param.get("valorunitario").toString() );
+			Double cantidad = Double.parseDouble( param.get("cantidad").toString() );
+			
+			Double total = valorUnit * cantidad;  
+			if( Integer.parseInt( documento.get("id").toString() ) == CodigosEstandares.idDocumentoDescuento ) {
+				//es un descuento que se esta ingresando
+				ttotal = ttotal - total; 
+			}else {
+				ttotal = ttotal + total;
+			}
+			
+		}catch(Exception ex) {
+			response.put("estado", "error");
+			response.put("estado", "Error al grabar detalle de planilla");
+		}
+		return response;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarDeudasCliente(Integer idcliente) {
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultardeudascliente(idcliente);
 			if(data != null) {
 				retorno = objectMapper.readValue(data, List.class);
 			}

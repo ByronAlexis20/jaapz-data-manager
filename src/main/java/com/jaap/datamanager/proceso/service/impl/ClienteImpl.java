@@ -32,6 +32,7 @@ public class ClienteImpl implements IClienteService {
 	}
 
 	@Override
+	@Transactional
 	public Boolean validarCedula(String cedula, Integer id) {
 		Boolean bandera = false;
 		if(id == null) {

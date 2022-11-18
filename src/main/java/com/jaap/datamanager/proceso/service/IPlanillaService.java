@@ -18,5 +18,11 @@ public interface IPlanillaService {
 	
 	public Map<String, Object> eliminarPlanillaPorId(Integer id);
 	
-	public List<LinkedHashMap<String, Object>> consultarDeudas();
+	public Map<String, Object> consultarDeudas();
+	
+	public List<LinkedHashMap<String, Object>> consultarDetallePlanilla(Integer idplanilla);
+	
+	public Map<String, Object> grabarDetallePlanilla(Map<String, Object> param);
+	
+	public List<LinkedHashMap<String, Object>> consultarDeudasCliente(Integer idcliente);
 }

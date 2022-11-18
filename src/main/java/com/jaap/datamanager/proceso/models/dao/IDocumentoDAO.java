@@ -15,5 +15,6 @@ public interface IDocumentoDAO extends CrudRepository<Documento, Integer> {
 	@Query("Select d from Documento d where d.id = ?1")
 	public Documento buscarDocumentoPorId(Integer id);
 	
-	
+	@Query(value = "select public.fun_consultar_documento();", nativeQuery = true)
+	public String consultarDocumento();
 }
