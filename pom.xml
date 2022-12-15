@@ -15,6 +15,7 @@
 	<description>Servicio de autenticacion jaapz</description>
 	<properties>
 		<java.version>11</java.version>
+		<skipTests>true</skipTests>
 	</properties>
 	<dependencies>
 		
@@ -142,8 +143,12 @@
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
 		</dependency>
-		
-		
+
+		<dependency>
+		    <groupId>com.sun.xml.bind</groupId>
+		    <artifactId>jaxb-impl</artifactId>
+		    <version>2.3.3</version>
+		</dependency>
 	</dependencies>
 
 	<build>

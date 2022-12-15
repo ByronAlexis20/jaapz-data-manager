@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,7 +57,7 @@ public class PlanillaImpl implements IPlanillaService {
 				Integer consumominimo = Integer.parseInt( param.get("consumominimo").toString() );
 				ConvertirNumeroLetras convertir = new ConvertirNumeroLetras();
 				param.put("consumo", consumominimo);
-				param.put("totalletras", convertir.Convertir(String.valueOf(consumominimo), true));
+				param.put("totalletras", "(" + convertir.Convertir(String.valueOf(consumominimo), true) + ")");
 			}else {
 				System.out.println("no son iguales");
 				Integer consumo = lecturaingresada - lecturaanterior;
@@ -185,35 +184,74 @@ public class PlanillaImpl implements IPlanillaService {
 	public Map<String, Object> grabarDetallePlanilla(Map<String, Object> param) {
 		Map<String, Object> response = new HashMap<>();
 		try {
+			ConvertirNumeroLetras convertir = new ConvertirNumeroLetras();
+			ObjectMapper objectMapper = new ObjectMapper();
 			Integer idplanilla = 0;
 			Double tsubtotal = 0.0, tdescuento = 0.0, ttotal = 0.0;
+
+			//valores que ya se encuentran registrados en la base de datos+++++++++++++++++++++++++++++++
 			List<Map<String, Object>> detalle = (List<Map<String, Object>>) param.get("detalle");
 			for(Map<String, Object> det : detalle) {
 				idplanilla = Integer.parseInt( det.get("idplanilla").toString() );
-				if(Integer.parseInt(param.get("iddocumento").toString()) == CodigosEstandares.idDocumentoDescuento) {
+				if(Integer.parseInt(det.get("iddocumento").toString()) == CodigosEstandares.idDocumentoDescuento) {
 					tdescuento = tdescuento + Double.valueOf( det.get("subtotal").toString() );
 				}else {
 					tsubtotal = tsubtotal + Double.valueOf( det.get("subtotal").toString() );
 				}
 			}
+			//calculo del total de los valores que ya estan ingresados en la base de datos
 			ttotal = tsubtotal - tdescuento;
-			//Documento
-			Map<String, Object> documento = (Map<String, Object>) param.get("documento");
+			
 			//carcular el total ingresado
 			Double valorUnit = Double.parseDouble( param.get("valorunitario").toString() );
 			Double cantidad = Double.parseDouble( param.get("cantidad").toString() );
+			Double totalIngresado = valorUnit * cantidad;
 			
-			Double total = valorUnit * cantidad;  
+			//Documento seleccionado
+			Map<String, Object> documento = (Map<String, Object>) param.get("documento");
+			//total definitivo, hay q actualizar en la cabecera
 			if( Integer.parseInt( documento.get("id").toString() ) == CodigosEstandares.idDocumentoDescuento ) {
 				//es un descuento que se esta ingresando
-				ttotal = ttotal - total; 
+				ttotal = ttotal - totalIngresado; 
 			}else {
-				ttotal = ttotal + total;
+				ttotal = ttotal + totalIngresado;
 			}
+			//actualizar en la cabecera el total a pagar
+			Map<String, Object> jsonCabecera = new HashMap<>();
+			jsonCabecera.put("totalpagar", ttotal);
+			jsonCabecera.put("totalletras", "(" + convertir.Convertir(String.valueOf(ttotal), true) + ")");
+			jsonCabecera.put("idplanilla", idplanilla);
 			
+			String jsonStringCabecera = objectMapper.writeValueAsString(jsonCabecera);
+			Integer retornoActualizarCabecera = this.planillaDAO.insertarDetalles(jsonStringCabecera, "AC");
+			if(retornoActualizarCabecera == 1) {//grabo con exito la actualizacion de la cabecera
+				//si grabo la cabecera.. se debe grabar el detalle
+				Map<String, Object> jsonDetalle = new HashMap<>();
+				jsonDetalle.put("idplanilla", idplanilla);
+				jsonDetalle.put("iddocumento", Integer.parseInt( documento.get("id").toString() ) );
+				jsonDetalle.put("cantidad", param.get("cantidad").toString());
+				jsonDetalle.put("descripcion", param.get("descripcion").toString());
+				jsonDetalle.put("subtotal", totalIngresado);
+				jsonDetalle.put("valorunitario", valorUnit);
+				
+				String jsonStringDetalle = objectMapper.writeValueAsString(jsonDetalle);
+				//insertar el detalle de la planilla
+				Integer retornoInsertDetalle = this.planillaDAO.insertarDetalles(jsonStringDetalle, "IND");
+				if(retornoInsertDetalle == 1) {
+					response.put("estado", "ok");
+					response.put("mensaje", "Detalle de planilla grabada correctamente");
+				}else {
+					response.put("estado", "error");
+					response.put("mensaje", "Error al insertar detalle de planilla");
+				}
+			}else {
+				response.put("estado", "error");
+				response.put("mensaje", "Error al actualizar datos de cabecera");
+			}
 		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
 			response.put("estado", "error");
-			response.put("estado", "Error al grabar detalle de planilla");
+			response.put("mensaje", "Error al grabar detalle de planilla");
 		}
 		return response;
 	}
@@ -226,6 +264,102 @@ public class PlanillaImpl implements IPlanillaService {
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			String data = this.planillaDAO.consultardeudascliente(idcliente);
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public Map<String, Object> eliminarDetallePlanilla(Map<String, Object> param) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			ConvertirNumeroLetras convertir = new ConvertirNumeroLetras();
+			Integer idplanilla = 0;
+			Double tsubtotal = 0.0, tdescuento = 0.0, ttotal = 0.0, ttotalplanillaeliminar = 0.0;
+			//primero debo actualizar las cantidades 
+			List<Map<String, Object>> detalle = (List<Map<String, Object>>) param.get("planillas");
+			for(Map<String, Object> det : detalle) {
+				idplanilla = Integer.parseInt( det.get("idplanilla").toString() );
+				if(Integer.parseInt(det.get("iddocumento").toString()) == CodigosEstandares.idDocumentoDescuento) {
+					tdescuento = tdescuento + Double.valueOf( det.get("subtotal").toString() );
+				}else {
+					tsubtotal = tsubtotal + Double.valueOf( det.get("subtotal").toString() );
+				}
+			}
+			ttotal = tsubtotal - tdescuento; 
+			Map<String, Object> plaEliminar = (Map<String, Object>) param.get("planillaeliminar");
+			//si la planilla a eliminar es un descuento, se suma el valor al total
+			ttotalplanillaeliminar = Double.parseDouble(plaEliminar.get("subtotal").toString());
+			if(Integer.parseInt(plaEliminar.get("iddocumento").toString()) == CodigosEstandares.idDocumentoDescuento) {
+				ttotal = ttotal + ttotalplanillaeliminar; 
+			}else {
+				ttotal = ttotal - ttotalplanillaeliminar;
+			}
+			//actualizar en la cabecera el total a pagar
+			Map<String, Object> jsonCabecera = new HashMap<>();
+			jsonCabecera.put("totalpagar", ttotal);
+			jsonCabecera.put("totalletras", "(" + convertir.Convertir(String.valueOf(ttotal), true) + ")");
+			jsonCabecera.put("idplanilla", idplanilla);
+			String jsonStringCabecera = objectMapper.writeValueAsString(jsonCabecera);
+			Integer retornoActualizarCabecera = this.planillaDAO.insertarDetalles(jsonStringCabecera, "AC");
+			if(retornoActualizarCabecera == 1) {//grabo con exito la actualizacion de la cabecera
+				//si grabo la cabecera.. se debe eliminar el detalle
+				Map<String, Object> jsonDetalle = new HashMap<>();
+				jsonDetalle.put("iddetalle", plaEliminar.get("id").toString());
+				String jsonStringDetalle = objectMapper.writeValueAsString(jsonDetalle);
+				//insertar el detalle de la planilla
+				Integer retornoInsertDetalle = this.planillaDAO.insertarDetalles(jsonStringDetalle, "ELI");
+				if(retornoInsertDetalle == 1) {
+					response.put("estado", "ok");
+					response.put("mensaje", "Detalle de planilla eliminado correctamente");
+				}else {
+					response.put("estado", "error");
+					response.put("mensaje", "Error al eliminar detalle de planilla");
+				}
+			}else {
+				response.put("estado", "error");
+				response.put("mensaje", "Error al actualizar datos de cabecera");
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+			response.put("estado", "error");
+			response.put("mensaje", "Error al eliminar detalle de planilla");
+		}
+		return response;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarReporteTomaLecturas() {
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarReporteTomaLectura();
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarReporteConsolidadoConsumo(Integer idanio, Integer idmes) {
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarReporteConsolidadoConsumo(idmes, idanio);
 			if(data != null) {
 				retorno = objectMapper.readValue(data, List.class);
 			}

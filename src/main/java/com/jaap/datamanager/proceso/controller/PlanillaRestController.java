@@ -133,10 +133,9 @@ public class PlanillaRestController {
 		String totalgeneral = data.get("total").toString();
 		FuncionesGenerales genera = new FuncionesGenerales();
 		Date fecha = new Date();
-		String fechaNueva = new SimpleDateFormat("EEEE, dd 'de' MMMM 'de' yyyy").format(fecha);
 		Map<String, Object> params = empresaService.consultarDatosEmpresa();
 		params.put("nombrereporte", "USUARIOS CON CUENTA PENDIENTE DE COBRO");
-		params.put("fecha", fechaNueva);
+		params.put("fecha", FuncionesGenerales.fechaString(fecha));
 		params.put("usuario", usuario);
 		params.put("totaldeuda", totalgeneral);
 		
@@ -203,5 +202,70 @@ public class PlanillaRestController {
 			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
+	}
+	
+	@PostMapping(value = "/eliminardetalleplanilla")
+	public ResponseEntity<?> eliminardetalleplanilla( @RequestBody Map<String, Object> param ) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			response = this.planillaService.eliminarDetallePlanilla(param);
+			
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
+	}
+	
+	@GetMapping(value = "/imprimirreportetomalecturas/{usuario}")
+	public ResponseEntity<byte[]> imprimirReporteTomaLectura( @PathVariable String usuario ) throws JsonMappingException, JsonProcessingException {
+		List<LinkedHashMap<String, Object>> dataFinal = this.planillaService.consultarReporteTomaLecturas();
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy");
+		FuncionesGenerales genera = new FuncionesGenerales();
+		Date fecha = new Date();
+		
+		String mes = FuncionesGenerales.obtenerMesPorFechaDate(fecha);
+		String anio = formatter.format(fecha);
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("nombrereporte", "TOMA DE LECTURAS");
+		params.put("anio", anio);
+		params.put("mes", mes);
+		params.put("usuario", usuario);
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptTomaLectura", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptTomaLectura" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+
+	}
+	
+	@GetMapping(value = "/imprimirreporteconsolidadoconsumo/{idmes}/{idanio}/{mes}/{anio}")
+	public ResponseEntity<byte[]> imprimirReporteConsolidadoConsumo( @PathVariable Integer idmes, @PathVariable Integer idanio,@PathVariable String mes, @PathVariable String anio ) throws JsonMappingException, JsonProcessingException {
+		System.out.println("Hora");
+		SimpleDateFormat formatter = new SimpleDateFormat("hh:mm:ss");
+		System.out.println(new Date());
+		System.out.println(formatter.format(new Date()));
+		List<LinkedHashMap<String, Object>> dataFinal = this.planillaService.consultarReporteConsolidadoConsumo(idanio, idmes);
+		FuncionesGenerales genera = new FuncionesGenerales();
+		
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("nombrereporte", "CONSOLIDADO DE CONSUMO POR MES");
+		params.put("anio", anio);
+		params.put("mes", mes);
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptConsolidadoConsumo", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptConsolidadoConsumo" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+
 	}
 }

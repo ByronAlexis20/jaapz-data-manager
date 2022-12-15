@@ -25,4 +25,10 @@ public interface IPlanillaService {
 	public Map<String, Object> grabarDetallePlanilla(Map<String, Object> param);
 	
 	public List<LinkedHashMap<String, Object>> consultarDeudasCliente(Integer idcliente);
+	
+	public Map<String, Object> eliminarDetallePlanilla(Map<String, Object> param);
+	
+	public List<LinkedHashMap<String, Object>> consultarReporteTomaLecturas();
+	
+	public List<LinkedHashMap<String, Object>> consultarReporteConsolidadoConsumo(Integer idanio, Integer idmes);
 }
