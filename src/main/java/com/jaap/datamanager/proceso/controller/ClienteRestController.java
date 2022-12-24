@@ -72,7 +72,7 @@ public class ClienteRestController {
 	}
 	
 	@PostMapping("/guardar")
-	public ResponseEntity<?> guardar(@Valid @RequestBody Cliente cli, BindingResult result) {
+	public ResponseEntity<?> guardar( @RequestBody Cliente cli, BindingResult result) {
 		Cliente data = null;
 		Map<String, Object> response = new HashMap<>();
 		if (result.hasErrors()) {
