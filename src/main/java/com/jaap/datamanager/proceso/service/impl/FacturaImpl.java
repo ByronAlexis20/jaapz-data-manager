@@ -1,6 +1,8 @@
 package com.jaap.datamanager.proceso.service.impl;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -11,14 +13,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jaap.datamanager.proceso.models.dao.IConfiguracionDAO;
 import com.jaap.datamanager.proceso.models.dao.IFacturaDAO;
+import com.jaap.datamanager.proceso.models.entity.Configuracion;
 import com.jaap.datamanager.proceso.service.IFacturaService;
+import com.jaap.datamanager.seguridad.models.dao.IEmpresaDAO;
+import com.jaap.datamanager.seguridad.models.entity.Empresa;
+import com.jaap.datamanager.util.FuncionesGenerales;
+import com.jaap.datamanager.util.GenerarFacturaXml;
+
+import jaapz.sri.firmar.XAdESBESSignature;
 
 @Service
 public class FacturaImpl implements IFacturaService {
 
 	@Autowired
 	private IFacturaDAO facturaDAO;
+	
+	@Autowired
+	private IEmpresaDAO empresaDAO;
+	
+	@Autowired
+	private IConfiguracionDAO configuracionDAO;
 	
 	@SuppressWarnings("unchecked")
 	@Override
@@ -85,6 +101,9 @@ public class FacturaImpl implements IFacturaService {
 			//proceso de grabar
 			Integer resFact = this.facturaDAO.grabarFactura(jsonCabecera, jsonDetalle, jsonPlanillas);
 			if(resFact != 0) {
+				//cuando la factura se graba correctamente, se genera el archivo xml de la factura
+				this.generarXmlFactura(resFact);
+				System.out.println("Generado");
 				respuesta.put("status", "ok");
 				respuesta.put("mensaje", "Grabado correctamente");
 				respuesta.put("idfactura", resFact);
@@ -101,6 +120,52 @@ public class FacturaImpl implements IFacturaService {
 		return respuesta;
 	}
 
+	@SuppressWarnings({ "unchecked", "static-access" })
+	@Transactional
+	private Map<String, Object> generarXmlFactura(Integer idfactura){
+		Map<String, Object> response = new HashMap<>();
+		try {
+			Configuracion conf = this.configuracionDAO.buscarConfiguracion();
+			FuncionesGenerales fun = new FuncionesGenerales();
+			ObjectMapper mapper = new ObjectMapper();
+			Empresa empresa = this.empresaDAO.buscarEmpresa();
+			GenerarFacturaXml facturaXml = new GenerarFacturaXml();
+			Map<String, Object> datos = new HashMap<>();
+			datos.put("empresa", empresa);
+			
+			String datoFactura = this.facturaDAO.consultarDatosFactura(idfactura);
+			String fechaFactura = "";
+			String numeroFactura = "";
+			if(datoFactura != null) {
+				List<LinkedHashMap<String, Object>> factura = mapper.readValue(datoFactura, List.class);
+				for(LinkedHashMap<String, Object> map : factura) {
+					datos.put("factura", map);
+					fechaFactura = map.get("fecha").toString();
+					numeroFactura = "000000000" + map.get("id").toString();
+				}
+			}
+			SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+			//clave de acceso
+			numeroFactura = numeroFactura.substring(numeroFactura.length() - 9, numeroFactura.length());
+			String claveAcceso = fun.obtenerClaveAcceso(formatter.parse(fechaFactura), numeroFactura, empresa.getRuc());
+			datos.put("claveacceso", claveAcceso);
+			datos.put("secuencial", numeroFactura);
+			datos.put("configuracion", conf);
+			
+			facturaXml.generarXmlFactura(datos);
+			
+			//actualizar la clave de acceso
+			Integer i = this.facturaDAO.actualizarClaveAcceso(idfactura, claveAcceso);
+			if( i == 1) {
+				System.out.println("Actualizado la clave de acceso");
+			}
+			//firmar el archivo xml
+			XAdESBESSignature.firmar(conf.getRutagenerados() + "\\" + claveAcceso + ".xml" , conf.getRutafirma(), conf.getClavefirma(), conf.getRutafirmados(), claveAcceso + ".xml");
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return response;
+	}
 
 	@SuppressWarnings("unchecked")
 	@Override

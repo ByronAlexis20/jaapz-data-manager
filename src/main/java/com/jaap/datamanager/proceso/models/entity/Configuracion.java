@@ -35,6 +35,27 @@ public class Configuracion implements Serializable, Cloneable {
 	@Column(name = "estado")
 	private String estado;
 
+	@Column(name = "rutagenerados")
+	private String rutagenerados;
+
+	@Column(name = "rutafirmados")
+	private String rutafirmados;
+
+	@Column(name = "rutaenviados")
+	private String rutaenviados;
+
+	@Column(name = "rutaautorizados")
+	private String rutaautorizados;
+
+	@Column(name = "rutanoautorizados")
+	private String rutanoautorizados;
+
+	@Column(name = "rutafirma")
+	private String rutafirma;
+
+	@Column(name = "clavefirma")
+	private String clavefirma;
+
 	public Configuracion() {
 		super();
 	}
@@ -96,6 +117,62 @@ public class Configuracion implements Serializable, Cloneable {
 
 	public void setEstado(String estado) {
 		this.estado = estado;
+	}
+
+	public String getRutagenerados() {
+		return rutagenerados;
+	}
+
+	public void setRutagenerados(String rutagenerados) {
+		this.rutagenerados = rutagenerados;
+	}
+
+	public String getRutafirmados() {
+		return rutafirmados;
+	}
+
+	public void setRutafirmados(String rutafirmados) {
+		this.rutafirmados = rutafirmados;
+	}
+
+	public String getRutaenviados() {
+		return rutaenviados;
+	}
+
+	public void setRutaenviados(String rutaenviados) {
+		this.rutaenviados = rutaenviados;
+	}
+
+	public String getRutaautorizados() {
+		return rutaautorizados;
+	}
+
+	public void setRutaautorizados(String rutaautorizados) {
+		this.rutaautorizados = rutaautorizados;
+	}
+
+	public String getRutanoautorizados() {
+		return rutanoautorizados;
+	}
+
+	public void setRutanoautorizados(String rutanoautorizados) {
+		this.rutanoautorizados = rutanoautorizados;
+	}
+
+	public String getRutafirma() {
+		return rutafirma;
+	}
+
+	public void setRutafirma(String rutafirma) {
+		this.rutafirma = rutafirma;
+	}
+
+	public String getClavefirma() {
+		return clavefirma;
+	}
+
+	public void setClavefirma(String clavefirma) {
+		this.clavefirma = clavefirma;
 	}
 
 }

@@ -1,12 +1,11 @@
 package com.jaap.datamanager.proceso.controller;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -34,7 +33,7 @@ public class ClienteRestController {
 	private IClienteService clienteService;
 	
 	@GetMapping(value = "/buscarclientes")
-	public ResponseEntity<?> buscarclientes() {
+	public ResponseEntity<?> buscarclientes() throws IOException {
 		List<Cliente> data = null;
 		Map<String, Object> response = new HashMap<>();
 		try {

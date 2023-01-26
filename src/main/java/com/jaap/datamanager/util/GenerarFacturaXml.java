@@ -1,159 +1,259 @@
 package com.jaap.datamanager.util;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.List;
 import java.util.Map;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import com.jaap.datamanager.proceso.models.entity.Configuracion;
+import com.jaap.datamanager.seguridad.models.entity.Empresa;
 
 public class GenerarFacturaXml {
 
-	public Document inicializarDocumento() throws ParserConfigurationException{
-        Document documento;
-        // Creamos los objectos de creacion de Documentos XML
-        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder constructor = docFactory.newDocumentBuilder();
-        
-        documento = constructor.newDocument();
-        
-        return documento;        
-    }
-	
-    public void escribirArchivo(Document documento, String fileName) throws TransformerConfigurationException, TransformerException {
-        // Creamos el objecto transformador
-        TransformerFactory transformerFactory = TransformerFactory.newInstance();
-        Transformer transformer = transformerFactory.newTransformer();
-        
-        // Indicamos que queremos que idente el XML con 2 espacios
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+	@SuppressWarnings("unchecked")
+	public static void generarXmlFactura(Map<String, Object> datosFactura) throws IOException {
+		// obtener datos
+		Empresa empresa = (Empresa) datosFactura.get("empresa");
+		Map<String, Object> dataFactura = (Map<String, Object>) datosFactura.get("factura");
+		Configuracion configuracion = (Configuracion) datosFactura.get("configuracion");
+		
+		String rutaGenerados = configuracion.getRutagenerados() + "\\" + datosFactura.get("claveacceso").toString() + ".xml";
+		
+		OutputStream out = new FileOutputStream( rutaGenerados );
+		
+		Document doc = new Document();
+		Element factura = new Element("factura");
+		factura.setAttribute("id", "comprobante");
+		factura.setAttribute("version", "1.0.0");
+		
+		doc.setRootElement(factura);
 
-        // Archivo donde almacenaremos el XML
-        File archivo = new File(fileName);
+		Element infoTributaria = new Element("infoTributaria");
+		
+		Element ambiente = new Element("ambiente");
+		ambiente.setText( Constantes.ambiente );
+		infoTributaria.addContent(ambiente);
+		
+		Element tipoEmision = new Element("tipoEmision");
+		tipoEmision.setText( Constantes.tipoEmision );
+		infoTributaria.addContent(tipoEmision);
+		
+		Element razonSocial = new Element("razonSocial");
+		razonSocial.setText( empresa.getRazonSocial() );
+		infoTributaria.addContent(razonSocial);
+		
+		/*Element nombreComercial = new Element("nombreComercial");
+		nombreComercial.setText("Empresa agua");
+		infoTributaria.addContent(nombreComercial);*/
+		
+		Element ruc = new Element("ruc");
+		ruc.setText( empresa.getRuc() );
+		infoTributaria.addContent(ruc);
+		
+		Element claveAcceso = new Element("claveAcceso");
+		claveAcceso.setText(datosFactura.get("claveacceso").toString());
+		infoTributaria.addContent(claveAcceso);
+		
+		Element codDoc = new Element("codDoc");
+		codDoc.setText(Constantes.codigoDocumento);
+		infoTributaria.addContent(codDoc);
+		
+		Element estab = new Element("estab");
+		estab.setText( empresa.getNumeroestablecimiento() );
+		infoTributaria.addContent(estab);
+		
+		Element ptoEmi = new Element("ptoEmi");
+		ptoEmi.setText( empresa.getNumeroestablecimiento());
+		infoTributaria.addContent(ptoEmi);
+		
+		Element secuencial = new Element("secuencial");
+		secuencial.setText( datosFactura.get("secuencial").toString() );
+		infoTributaria.addContent(secuencial);
+		
+		Element dirMatriz = new Element("dirMatriz");
+		dirMatriz.setText( empresa.getDireccion() );
+		infoTributaria.addContent(dirMatriz);
+		
+		doc.getRootElement().addContent(infoTributaria);
 
-        // Fuente de datos, en este caso el documento XML
-        DOMSource source = new DOMSource(documento);
-        // Resultado, el cual almacena en el archivo indicado
-        StreamResult result = new StreamResult(archivo);
-        // Transformamos de ña fuente DOM a el resultado, lo que almacena todo en el archivo
-        transformer.transform(source, result);
-    }
-	
-    @SuppressWarnings("unchecked")
-	public Document crearDocumento( Map<String, Object> params ) throws ParserConfigurationException {
-        Document documento = this.inicializarDocumento();
-        
-        // Creamos el elemento principal
-        Element factura = documento.createElement("factura");
-        factura.setAttribute("id", "comprobante");
-        factura.setAttribute("version", "1.0.0");
-        // Hacemos el elemento entrada descender directo del nodo XML principal
-        documento.appendChild(factura);
-        
-        //Creamos el primer elemento de factura infoTributaria
-        //********************************************* INFORMACION TRIBUTARIA **********************************************************
-        Map<String, Object> infoTrib = (Map<String, Object>) params.get("informaciontributaria");
-        Element infoTributaria = documento.createElement("infoTributaria");
-        
-        Element ambiente = documento.createElement( "ambiente" );
-        ambiente.setTextContent( infoTrib.get("ambiente").toString() );
-        infoTributaria.appendChild(ambiente);
-        
-        Element tipoemision = documento.createElement( "tipoEmision" );
-        tipoemision.setTextContent( infoTrib.get("tipoemision").toString() );
-        infoTributaria.appendChild(tipoemision);
-        
-        Element razonsocial = documento.createElement( "razonSocial" );
-        razonsocial.setTextContent( infoTrib.get("razonsocial").toString() );
-        infoTributaria.appendChild(razonsocial);
-        
-        Element nombrecomercial = documento.createElement( "nombreComercial" );
-        nombrecomercial.setTextContent( infoTrib.get("nombrecomercial").toString() );
-        infoTributaria.appendChild(nombrecomercial);
-        
-        Element ruc = documento.createElement( "ruc" );
-        ruc.setTextContent( infoTrib.get("ruc").toString() );
-        infoTributaria.appendChild(ruc);
-        
-        Element claveacceso = documento.createElement( "claveAcceso" );
-        claveacceso.setTextContent( infoTrib.get("claveacceso").toString() );
-        infoTributaria.appendChild(claveacceso);
-        
-        Element codigodocumento = documento.createElement( "codDoc" );
-        codigodocumento.setTextContent( infoTrib.get("codigodocumento").toString() );
-        infoTributaria.appendChild(codigodocumento);
-        
-        Element establecimiento = documento.createElement( "estab" );
-        establecimiento.setTextContent( infoTrib.get("establecimiento").toString() );
-        infoTributaria.appendChild(establecimiento);
-        
-        Element puntoemision = documento.createElement( "ptoEmi" );
-        puntoemision.setTextContent( infoTrib.get("puntoemision").toString() );
-        infoTributaria.appendChild(puntoemision);
-        
-        Element secuencial = documento.createElement( "secuencial" );
-        secuencial.setTextContent( infoTrib.get("secuencial").toString() );
-        infoTributaria.appendChild(secuencial);
-        
-        Element direccionJunta = documento.createElement( "dirMatriz" );
-        direccionJunta.setTextContent( infoTrib.get("direccionjunta").toString() );
-        infoTributaria.appendChild(direccionJunta);
-        
-        factura.appendChild(infoTributaria);
-        //****************************************************************************************************************************
-        //********************************************* INFORMACION FACTURA **********************************************************
-        Map<String, Object> infoFac = (Map<String, Object>) params.get("informacionfactura");
-        Element infoFactura = documento.createElement("infoTributaria");
-        
-        Element fechaEmision = documento.createElement( "fechaEmision" );
-        fechaEmision.setTextContent( infoFac.get("fechaemision").toString() );
-        infoFactura.appendChild(fechaEmision);
-        
-        Element direccionEstablecimiento = documento.createElement( "dirEstablecimiento" );
-        direccionEstablecimiento.setTextContent( infoFac.get("direccionestablecimiento").toString() );
-        infoFactura.appendChild(direccionEstablecimiento);
-        
-        Element obligadoContabilidad = documento.createElement( "obligadoContabilidad" );
-        obligadoContabilidad.setTextContent( infoFac.get("obligadocontabilidad").toString() );
-        infoFactura.appendChild(obligadoContabilidad);
-        
-        Element tipoIdentificacionComprador = documento.createElement( "tipoIdentificacionComprador" );
-        tipoIdentificacionComprador.setTextContent( infoFac.get("tipoidentificacioncomprador").toString() );
-        infoFactura.appendChild(tipoIdentificacionComprador);
-        
-        Element razonSocialComprador = documento.createElement( "razonSocialComprador" );
-        razonSocialComprador.setTextContent( infoFac.get("razonsocialcomprador").toString() );
-        infoFactura.appendChild(razonSocialComprador);
-        
-        Element identificacionComprador = documento.createElement( "identificacionComprador" );
-        identificacionComprador.setTextContent( infoFac.get("identificacioncomprador").toString() );
-        infoFactura.appendChild(identificacionComprador);
-        
-        Element totalSinImpuestos = documento.createElement( "totalSinImpuestos" );
-        totalSinImpuestos.setTextContent( infoFac.get("totalsinimpuestos").toString() );
-        infoFactura.appendChild(totalSinImpuestos);
-        
-        Element totalDescuento = documento.createElement( "totalDescuento" );
-        totalDescuento.setTextContent( infoFac.get("totaldescuento").toString() );
-        infoFactura.appendChild(totalDescuento);
-        
-        
-        
-        factura.appendChild(infoFactura);
-        return documento;
-    }
+		Element infoFactura = new Element("infoFactura");
+
+		Element fechaEmision = new Element("fechaEmision");
+		fechaEmision.setText( dataFactura.get("fecha").toString() );
+		infoFactura.addContent(fechaEmision);
+		
+		/*Element dirEstablecimiento = new Element("dirEstablecimiento");
+		dirEstablecimiento.setText("Zapotal Ciudadela");
+		infoFactura.addContent(dirEstablecimiento);*/
+		
+		Element obligadoContabilidad = new Element("obligadoContabilidad");
+		obligadoContabilidad.setText("SI");
+		infoFactura.addContent(obligadoContabilidad);
+		
+		Element tipoIdentificacionComprador = new Element("tipoIdentificacionComprador");
+		if( dataFactura.get("identificacion").toString().length() == 10 ) {
+			tipoIdentificacionComprador.setText( Constantes.tipoIdentificacionCompradorCedula );
+		}else {
+			if( dataFactura.get("identificacion").toString().length() == 13 ) {
+				tipoIdentificacionComprador.setText( Constantes.tipoIdentificacionCompradorRuc );
+			}
+		}
+		infoFactura.addContent(tipoIdentificacionComprador);
+				
+		Element razonSocialComprador = new Element("razonSocialComprador");
+		razonSocialComprador.setText( dataFactura.get("cliente").toString() );
+		infoFactura.addContent(razonSocialComprador);
+		
+		Element identificacionComprador = new Element("identificacionComprador");
+		identificacionComprador.setText( dataFactura.get("identificacion").toString() );
+		infoFactura.addContent(identificacionComprador);
+		
+		/*Element direccionComprador = new Element("direccionComprador");
+		direccionComprador.setText("2400027757001");
+		infoFactura.addContent(direccionComprador);*/
+		
+		Element totalSinImpuestos = new Element("totalSinImpuestos");
+		totalSinImpuestos.setText( dataFactura.get("totalpagado").toString() );
+		infoFactura.addContent(totalSinImpuestos);
+		
+		Element totalDescuento = new Element("totalDescuento");
+		totalDescuento.setText("0");
+		infoFactura.addContent(totalDescuento);
+		
+		Element totalConImpuesto = new Element("totalConImpuestos");
+		
+		Element totalImpuesto = new Element("totalImpuesto");
+		
+		Element codigo = new Element("codigo");
+		codigo.setText( Constantes.codigoImpuestoIva );
+		totalImpuesto.addContent(codigo);
+		
+		Element codigoPorcentaje = new Element("codigoPorcentaje");
+		codigoPorcentaje.setText("0");
+		totalImpuesto.addContent(codigoPorcentaje);
+		
+		Element baseImponible = new Element("baseImponible");
+		baseImponible.setText( dataFactura.get("totalpagado").toString() );
+		totalImpuesto.addContent(baseImponible);
+		
+		Element tarifa = new Element("tarifa");
+		tarifa.setText("0.00");
+		totalImpuesto.addContent(tarifa);
+		
+		Element valor = new Element("valor");
+		valor.setText("0.00");
+		totalImpuesto.addContent(valor);
+		
+		totalConImpuesto.addContent(totalImpuesto);
+		
+		infoFactura.addContent(totalConImpuesto);
+		
+		Element propina = new Element("propina");
+		propina.setText("0.00");
+		infoFactura.addContent(propina);
+		
+		Element importeTotal = new Element("importeTotal");
+		importeTotal.setText( dataFactura.get("totalpagado").toString() );
+		infoFactura.addContent(importeTotal);
+		
+		Element moneda = new Element("moneda");
+		moneda.setText("DOLAR");
+		infoFactura.addContent(moneda);
+		
+		Element pagos = new Element("pagos");
+		
+		Element pago = new Element("pago");
+		
+		Element formaPago = new Element("formaPago");
+		formaPago.setText( Constantes.codigoFormaPagoSinSistemaFinanciero );
+		pago.addContent(formaPago);
+		
+		Element total = new Element("total");
+		total.setText( dataFactura.get("totalpagado").toString() );
+		pago.addContent(total);
+		
+		pagos.addContent(pago);
+		
+		infoFactura.addContent(pagos);
+		
+		doc.getRootElement().addContent(infoFactura);
+		
+		//detalles de la factura
+		List<Map<String, Object>> detalleFactura = (List<Map<String, Object>>) dataFactura.get("detalles");
+
+		Element detalles = new Element("detalles");
+		
+		for( Map<String, Object> det : detalleFactura ) {
+			Element detalle = new Element("detalle");
+			
+			Element codigoPrincipal = new Element("codigoPrincipal");
+			codigoPrincipal.setText("0001");
+			detalle.addContent(codigoPrincipal);
+			
+			Element descripcion = new Element("descripcion");
+			descripcion.setText( det.get("descripcion").toString() );
+			detalle.addContent(descripcion);
+			
+			Element cantidad = new Element("cantidad");
+			cantidad.setText( det.get("cantidad").toString() );
+			detalle.addContent(cantidad);
+			
+			Element precioUnitario = new Element("precioUnitario");
+			precioUnitario.setText( det.get("valorunitario").toString() );
+			detalle.addContent(precioUnitario);
+			
+			Element descuento = new Element("descuento");
+			descuento.setText( "0" );
+			detalle.addContent(descuento);
+			
+			Element precioTotalSinImpuesto = new Element("precioTotalSinImpuesto");
+			precioTotalSinImpuesto.setText( det.get("subtotal").toString() );
+			detalle.addContent(precioTotalSinImpuesto);
+			
+			Element impuestos = new Element("impuestos");
+			
+			Element impuesto = new Element("impuesto");
+			
+			Element codigoImp = new Element("codigo");
+			codigoImp.setText( Constantes.codigoImpuestoIva );
+			impuesto.addContent(codigoImp);
+			
+			Element codigoPorcentajeImp = new Element("codigoPorcentaje");
+			codigoPorcentajeImp.setText("0");
+			impuesto.addContent(codigoPorcentajeImp);
+			
+			Element tarifaImp = new Element("tarifa");
+			tarifaImp.setText("0.00");
+			impuesto.addContent(tarifaImp);
+			
+			Element baseImponibleImp = new Element("baseImponible");
+			baseImponibleImp.setText( det.get("subtotal").toString() );
+			impuesto.addContent(baseImponibleImp);
+			
+			Element valorImp = new Element("valor");
+			valorImp.setText("0.00");
+			impuesto.addContent(valorImp);
+			
+			impuestos.addContent( impuesto );
+			
+			detalle.addContent( impuestos );
+			
+			detalles.addContent(detalle);
+		}
+		
+		doc.getRootElement().addContent(detalles);
+		XMLOutputter xmlOutputter = new XMLOutputter();
+
+		// pretty print
+		xmlOutputter.setFormat(Format.getPrettyFormat());
+		xmlOutputter.output(doc, out);
+
+	}
+
 }
