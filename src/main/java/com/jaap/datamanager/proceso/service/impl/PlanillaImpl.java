@@ -1,5 +1,6 @@
 package com.jaap.datamanager.proceso.service.impl;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -11,16 +12,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jaap.datamanager.proceso.models.dao.IConfiguracionDAO;
 import com.jaap.datamanager.proceso.models.dao.IPlanillaDAO;
+import com.jaap.datamanager.proceso.models.entity.Configuracion;
 import com.jaap.datamanager.proceso.service.IPlanillaService;
+import com.jaap.datamanager.seguridad.models.dao.IEmpresaDAO;
+import com.jaap.datamanager.seguridad.models.entity.Empresa;
+import com.jaap.datamanager.sri.EnvioComprobantes;
 import com.jaap.datamanager.util.CodigosEstandares;
 import com.jaap.datamanager.util.ConvertirNumeroLetras;
+import com.jaap.datamanager.util.FuncionesGenerales;
+import com.jaap.datamanager.util.GenerarFacturaXml;
+
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 
 @Service
 public class PlanillaImpl implements IPlanillaService {
 
 	@Autowired
 	private IPlanillaDAO planillaDAO;
+	
+	@Autowired
+	private IEmpresaDAO empresaDAO;
+	
+	@Autowired
+	private IConfiguracionDAO configuracionDAO;
 	
 	@SuppressWarnings("unchecked")
 	@Override
@@ -69,13 +85,64 @@ public class PlanillaImpl implements IPlanillaService {
 			String jsonString = objectMapper.writeValueAsString(param);
 			
 			Integer resultado = this.planillaDAO.grabarPlanilla(jsonString);
-			if(resultado == 1) {
+			if(resultado != 0) {
+				
+				//this.generarXmlFactura(resultado);
+				
 				response.put("estado", "ok");
 				response.put("mensaje", "Planilla grabado correctamente");
 			}
 		}catch(Exception ex) {
 			response.put("estado", "error");
 			response.put("mensaje", ex.getMessage());
+			System.out.println(ex.getMessage());
+		}
+		return response;
+	}
+	
+	@SuppressWarnings({ "unchecked", "static-access" })
+	@Transactional
+	private Map<String, Object> generarXmlFactura(Integer id){
+		Map<String, Object> response = new HashMap<>();
+		try {
+			Configuracion conf = this.configuracionDAO.buscarConfiguracion();
+			FuncionesGenerales fun = new FuncionesGenerales();
+			ObjectMapper mapper = new ObjectMapper();
+			Empresa empresa = this.empresaDAO.buscarEmpresa();
+			GenerarFacturaXml facturaXml = new GenerarFacturaXml();
+			Map<String, Object> datos = new HashMap<>();
+			datos.put("empresa", empresa);
+			
+			String datoFactura = this.planillaDAO.consultarDatosPlanillaFacturaElectronica(id);
+			String fechaFactura = "";
+			String numeroFactura = "";
+			if(datoFactura != null) {
+				List<LinkedHashMap<String, Object>> factura = mapper.readValue(datoFactura, List.class);
+				for(LinkedHashMap<String, Object> map : factura) {
+					datos.put("factura", map);
+					fechaFactura = map.get("fecha").toString();
+					numeroFactura = "000000000" + map.get("numerofactura").toString();
+				}
+			}
+			SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+			//clave de acceso
+			numeroFactura = numeroFactura.substring(numeroFactura.length() - 9, numeroFactura.length());
+			String claveAcceso = fun.obtenerClaveAcceso(formatter.parse(fechaFactura), numeroFactura, empresa.getRuc());
+			datos.put("claveacceso", claveAcceso);
+			datos.put("secuencial", numeroFactura);
+			datos.put("configuracion", conf);
+			
+			facturaXml.generarXmlFactura(datos);
+			
+			//actualizar la clave de acceso
+			Integer i = this.planillaDAO.actualizarClaveAcceso(id, claveAcceso);
+			if( i == 1) {
+				System.out.println("Actualizado la clave de acceso");
+			}
+			//firmar el archivo xml
+			jaapz.sri.firmar.XAdESBESSignature.firmar(conf.getRutagenerados() + claveAcceso + ".xml" , conf.getRutafirma(), conf.getClavefirma(), conf.getRutafirmados(), claveAcceso + ".xml");
+			
+		}catch(Exception ex) {
 			System.out.println(ex.getMessage());
 		}
 		return response;
@@ -368,5 +435,223 @@ public class PlanillaImpl implements IPlanillaService {
 		}
 		return retorno;
 	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarPlanillaPorAnioMes(Integer idanio, Integer idmes){
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			Map<String, Object> mpBus = new HashMap<>();
+			mpBus.put("idmes", idmes);
+			mpBus.put("idanio", idanio);
+			String jsonBus = objectMapper.writeValueAsString(mpBus);
+			String data = this.planillaDAO.procesoPlanila(jsonBus, "CPAF");
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarPlanillaFirmadaPorAnioMes(Integer idanio, Integer idmes){
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			Map<String, Object> mpBus = new HashMap<>();
+			mpBus.put("idmes", idmes);
+			mpBus.put("idanio", idanio);
+			String jsonBus = objectMapper.writeValueAsString(mpBus);
+			String data = this.planillaDAO.procesoPlanila(jsonBus, "CPFI");
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarPlanillaRecibidadPorAnioMes(Integer idanio, Integer idmes){
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			Map<String, Object> mpBus = new HashMap<>();
+			mpBus.put("idmes", idmes);
+			mpBus.put("idanio", idanio);
+			String jsonBus = objectMapper.writeValueAsString(mpBus);
+			String data = this.planillaDAO.procesoPlanila(jsonBus, "CPAT");
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+	
+	@Override
+	@Transactional
+	public Map<String, Object> firmarDocumentosMasivos(List<Map<String, Object>> param){
+		Map<String, Object> retorno = new HashMap<>();
+		try {
+			for(Map<String, Object> dat : param) {
+				System.out.println(dat.get("id"));
+				this.generarXmlFactura(Integer.parseInt(dat.get("id").toString()));
+			}
+			retorno.put("estado", "ok");
+			retorno.put("mensaje", "Archivos firmados correctamente");
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+			retorno.put("estado", "error");
+			retorno.put("mensaje", "Error al firmar documentos");
+		}
+		return retorno;
+	}
+	
+	@Override
+	@Transactional
+	public Map<String, Object> enviarcomprobantes(List<Map<String, Object>> param){
+		Map<String, Object> retorno = new HashMap<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			EnvioComprobantes prueba = new EnvioComprobantes();
+			Configuracion conf = this.configuracionDAO.buscarConfiguracion();
+			for(Map<String, Object> dat : param) {
+				Map<String, Object> res = prueba.enviarComprobante(Integer.parseInt( dat.get("id").toString() ), conf.getRutafirmados() + dat.get("claveacceso").toString() + ".xml");
+				System.out.println(res.toString());
+				
+				Map<String, Object> mpBus = new HashMap<>();
+				mpBus.put("estado", res.get("estadoenvio").toString());
+				mpBus.put("mensaje", res.get("mensaje").toString());
+				mpBus.put("id", Integer.parseInt( dat.get("id").toString() ));
+				String jsonBus = objectMapper.writeValueAsString(mpBus);
+				this.planillaDAO.procesoPlanila(jsonBus, "ACEE");
+			}
+			retorno.put("estado", "ok");
+			retorno.put("mensaje", "Archivos firmados correctamente");
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+			retorno.put("estado", "error");
+			retorno.put("mensaje", "Error al firmar documentos");
+		}
+		return retorno;
+	}
+	
+	@Override
+	@Transactional
+	public Map<String, Object> autorizarcomprobantes(List<Map<String, Object>> param){
+		Map<String, Object> retorno = new HashMap<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			EnvioComprobantes prueba = new EnvioComprobantes();
+			Configuracion conf = this.configuracionDAO.buscarConfiguracion();
+			for(Map<String, Object> dat : param) {
+				System.out.println(dat.get("claveacceso").toString());
+				Map<String, Object> res = prueba.autorizacionComprobante( dat.get("claveacceso").toString(), conf.getRutaautorizados() );
+				System.out.println(res.toString());
+				//ACTUALIZAR ESTADO DE AUTORIZACION
+				if(res.get("estado").toString().equals("ok")) {
+					Map<String, Object> mpBus = new HashMap<>();
+					mpBus.put("estado", res.get("status").toString());
+					mpBus.put("mensaje", res.get("mensaje").toString());
+					mpBus.put("id", Integer.parseInt( dat.get("id").toString() ));
+					String jsonBus = objectMapper.writeValueAsString(mpBus);
+					this.planillaDAO.procesoPlanila(jsonBus, "ACAS");	
+				}
+			}
+			retorno.put("estado", "ok");
+			retorno.put("mensaje", "Archivos firmados correctamente");
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+			retorno.put("estado", "error");
+			retorno.put("mensaje", "Error al firmar documentos");
+		}
+		return retorno;
+	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public byte[] generarFactura( Integer id ) {
+		System.out.println("id: " + id);
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarPlanillaEnviar(id);
+			if( data != null ) {
+				Empresa empresa = this.empresaDAO.buscarEmpresa();
+				List<Map<String, Object>> lista = objectMapper.readValue(data, List.class);
+				for(Map<String, Object> dat : lista ) {
+					Map<String, Object> parametros = new HashMap<>();
+					parametros.put("RUC", empresa.getRuc());
+					parametros.put("NUM_AUT", dat.get("claveacceso").toString());
+					parametros.put("TIPO_EMISION", "NORMAL");
+					parametros.put("CLAVE_ACC", dat.get("claveacceso").toString());
+					parametros.put("RAZON_SOCIAL", empresa.getRazonSocial());
+					parametros.put("DIR_MATRIZ", empresa.getDireccion());
+					parametros.put("LLEVA_CONTABILIDAD", "NO");
+					parametros.put("RS_COMPRADOR", dat.get("cliente").toString());
+					parametros.put("RUC_COMPRADOR", dat.get("cedula").toString());
+					parametros.put("FECHA_EMISION", dat.get("fecha").toString());
+					parametros.put("NUM_FACT", dat.get("factura").toString());
+					parametros.put("AMBIENTE", "PRODUCCIÓN");
+					parametros.put("REGIMEN_RIMPE", "RIMPE - EMPRENDEDOR");
+					
+					parametros.put("DIR_CLIENTE", dat.get("direccion")==null?"":dat.get("direccion").toString() );
+					parametros.put("EMAIL_CLIENTE", dat.get("email")==null?"":dat.get("email").toString() );
+					parametros.put("TELF_CLIENTE", dat.get("telefono")==null?"":dat.get("telefono").toString() );
+					parametros.put("NUMERO_MEDIDOR", dat.get("numeromedidor")==null?"":dat.get("numeromedidor").toString() );
+					
+					parametros.put("SUBTOTAL_12", "0.00");
+					parametros.put("SUBTOTAL_0", dat.get("subtotal").toString());
+					parametros.put("SUBTOTAL_NO_IVA", "0.00");
+					parametros.put("SUBTOTAL_IVA", "0.00");
+					parametros.put("SUBTOTAL_SIN_IMPUESTOS", dat.get("subtotal").toString());
+					parametros.put("TOTAL_DESCUENTO", dat.get("descuento").toString());
+					parametros.put("ICE", "0.00");
+					parametros.put("IVA12", "0.00");
+					parametros.put("DEVOLUCION_IVA", "0.00");
+					parametros.put("ISBPNR", "0.00");
+					parametros.put("PROPINA", "0.00");
+					parametros.put("VALOR_TOTAL", dat.get("totalpagar").toString());
+					parametros.put("TOTAL_SIN_SUBSIDIO", "0.00");
+					parametros.put("AHORRO_SUBSIDIO", "0.00");
+					
+					List<Map<String, Object>> detalles = (List<Map<String, Object>>) dat.get("detalle");
+					
+					List<Map<String, Object>> dataFinal = new ArrayList<>();
+					
+					for(Map<String, Object> det : detalles ) {
+						Map<String, Object> detalle = new HashMap<>();
+						detalle.put("codigoPrincipal", det.get("codigo").toString());
+						detalle.put("codigoAuxiliar", "");
+						detalle.put("cantidad", det.get("cantidad").toString());
+						detalle.put("descripcion", det.get("descripcion").toString().toUpperCase());
+						detalle.put("precioUnitario", det.get("valorunitario").toString());
+						detalle.put("descuento", "0.00");
+						detalle.put("precioTotalSinImpuesto", det.get("subtotal").toString());
+						dataFinal.add(detalle);
+					}
+					
+					JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+					FuncionesGenerales genera = new FuncionesGenerales();
+					byte[] bytes = genera.generarReportePDF("factura", parametros, source);
+					return bytes;
+				}
+			}	
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+			return null;
+		}
+		return null;
+	}
 }

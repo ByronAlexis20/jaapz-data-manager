@@ -45,4 +45,15 @@ public interface IPlanillaDAO extends CrudRepository<Planilla, Integer> {
 	@Query(value = "select public.fun_reporte_consolidado_consumo( ?1, ?2 );", nativeQuery = true)
 	public String consultarReporteConsolidadoConsumo(Integer idmes, Integer idanio);
 	
+	@Query(value = "select public.fun_actualizarfacturaclaveacceso( ?1, ?2 );", nativeQuery = true)
+	public Integer actualizarClaveAcceso( Integer id, String claveacceso );
+	
+	@Query(value = "select public.fun_consultar_datos_planilla( ?1 );", nativeQuery = true)
+	public String consultarDatosPlanillaFacturaElectronica( Integer id );
+	
+	@Query(value = "select public.fun_proceso_planilla( ?1, ?2 );", nativeQuery = true)
+	public String procesoPlanila(String json, String criterio);
+	
+	@Query(value = "select public.fun_consultar_planilla_enviar( ?1 );", nativeQuery = true)
+	public String consultarPlanillaEnviar(Integer id);
 }

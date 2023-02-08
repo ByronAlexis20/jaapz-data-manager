@@ -31,4 +31,19 @@ public interface IPlanillaService {
 	public List<LinkedHashMap<String, Object>> consultarReporteTomaLecturas();
 	
 	public List<LinkedHashMap<String, Object>> consultarReporteConsolidadoConsumo(Integer idanio, Integer idmes);
+	
+	public List<LinkedHashMap<String, Object>> consultarPlanillaPorAnioMes(Integer idanio, Integer idmes);
+	
+	public List<LinkedHashMap<String, Object>> consultarPlanillaFirmadaPorAnioMes(Integer idanio, Integer idmes);
+	
+	public List<LinkedHashMap<String, Object>> consultarPlanillaRecibidadPorAnioMes(Integer idanio, Integer idmes);
+	
+	public Map<String, Object> firmarDocumentosMasivos(List<Map<String, Object>> param);
+	
+	public Map<String, Object> enviarcomprobantes(List<Map<String, Object>> param);
+	
+	public Map<String, Object> autorizarcomprobantes(List<Map<String, Object>> param);
+	
+	public byte[] generarFactura( Integer id );
+
 }

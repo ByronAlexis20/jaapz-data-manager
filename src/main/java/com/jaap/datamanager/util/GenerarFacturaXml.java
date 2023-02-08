@@ -23,7 +23,7 @@ public class GenerarFacturaXml {
 		Map<String, Object> dataFactura = (Map<String, Object>) datosFactura.get("factura");
 		Configuracion configuracion = (Configuracion) datosFactura.get("configuracion");
 		
-		String rutaGenerados = configuracion.getRutagenerados() + "\\" + datosFactura.get("claveacceso").toString() + ".xml";
+		String rutaGenerados = configuracion.getRutagenerados() + datosFactura.get("claveacceso").toString() + ".xml";
 		
 		OutputStream out = new FileOutputStream( rutaGenerados );
 		
@@ -88,12 +88,12 @@ public class GenerarFacturaXml {
 		fechaEmision.setText( dataFactura.get("fecha").toString() );
 		infoFactura.addContent(fechaEmision);
 		
-		/*Element dirEstablecimiento = new Element("dirEstablecimiento");
-		dirEstablecimiento.setText("Zapotal Ciudadela");
-		infoFactura.addContent(dirEstablecimiento);*/
+		Element dirEstablecimiento = new Element("dirEstablecimiento");
+		dirEstablecimiento.setText("SANTA ELENA / SANTA ELENA / CHANDUY / PRINCIPAL S/N");
+		infoFactura.addContent(dirEstablecimiento);
 		
 		Element obligadoContabilidad = new Element("obligadoContabilidad");
-		obligadoContabilidad.setText("SI");
+		obligadoContabilidad.setText("NO");
 		infoFactura.addContent(obligadoContabilidad);
 		
 		Element tipoIdentificacionComprador = new Element("tipoIdentificacionComprador");
@@ -119,11 +119,11 @@ public class GenerarFacturaXml {
 		infoFactura.addContent(direccionComprador);*/
 		
 		Element totalSinImpuestos = new Element("totalSinImpuestos");
-		totalSinImpuestos.setText( dataFactura.get("totalpagado").toString() );
+		totalSinImpuestos.setText( dataFactura.get("totalpagar").toString() );
 		infoFactura.addContent(totalSinImpuestos);
 		
 		Element totalDescuento = new Element("totalDescuento");
-		totalDescuento.setText("0");
+		totalDescuento.setText( dataFactura.get("descuento").toString() );
 		infoFactura.addContent(totalDescuento);
 		
 		Element totalConImpuesto = new Element("totalConImpuestos");
@@ -139,7 +139,7 @@ public class GenerarFacturaXml {
 		totalImpuesto.addContent(codigoPorcentaje);
 		
 		Element baseImponible = new Element("baseImponible");
-		baseImponible.setText( dataFactura.get("totalpagado").toString() );
+		baseImponible.setText( dataFactura.get("totalpagar").toString() );
 		totalImpuesto.addContent(baseImponible);
 		
 		Element tarifa = new Element("tarifa");
@@ -159,7 +159,7 @@ public class GenerarFacturaXml {
 		infoFactura.addContent(propina);
 		
 		Element importeTotal = new Element("importeTotal");
-		importeTotal.setText( dataFactura.get("totalpagado").toString() );
+		importeTotal.setText( dataFactura.get("totalpagar").toString() );
 		infoFactura.addContent(importeTotal);
 		
 		Element moneda = new Element("moneda");
@@ -171,11 +171,11 @@ public class GenerarFacturaXml {
 		Element pago = new Element("pago");
 		
 		Element formaPago = new Element("formaPago");
-		formaPago.setText( Constantes.codigoFormaPagoSinSistemaFinanciero );
+		formaPago.setText( Constantes.codigoOtrosUtilizacionSistemaFinanciero );
 		pago.addContent(formaPago);
 		
 		Element total = new Element("total");
-		total.setText( dataFactura.get("totalpagado").toString() );
+		total.setText( dataFactura.get("totalpagar").toString() );
 		pago.addContent(total);
 		
 		pagos.addContent(pago);
@@ -197,7 +197,7 @@ public class GenerarFacturaXml {
 			detalle.addContent(codigoPrincipal);
 			
 			Element descripcion = new Element("descripcion");
-			descripcion.setText( det.get("descripcion").toString() );
+			descripcion.setText( det.get("descripcion").toString().toUpperCase() );
 			detalle.addContent(descripcion);
 			
 			Element cantidad = new Element("cantidad");
@@ -249,7 +249,7 @@ public class GenerarFacturaXml {
 		
 		doc.getRootElement().addContent(detalles);
 		XMLOutputter xmlOutputter = new XMLOutputter();
-
+		System.out.println("ruta generado -->> " + rutaGenerados);
 		// pretty print
 		xmlOutputter.setFormat(Format.getPrettyFormat());
 		xmlOutputter.output(doc, out);

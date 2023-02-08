@@ -246,17 +246,23 @@ public class PlanillaRestController {
 	
 	@GetMapping(value = "/imprimirreporteconsolidadoconsumo/{idmes}/{idanio}/{mes}/{anio}")
 	public ResponseEntity<byte[]> imprimirReporteConsolidadoConsumo( @PathVariable Integer idmes, @PathVariable Integer idanio,@PathVariable String mes, @PathVariable String anio ) throws JsonMappingException, JsonProcessingException {
-		System.out.println("Hora");
 		SimpleDateFormat formatter = new SimpleDateFormat("hh:mm:ss");
 		System.out.println(new Date());
 		System.out.println(formatter.format(new Date()));
 		List<LinkedHashMap<String, Object>> dataFinal = this.planillaService.consultarReporteConsolidadoConsumo(idanio, idmes);
+		Double total = 0.0;
+		for( LinkedHashMap<String, Object> dat : dataFinal ) {
+			if( dat.get("totalplanillado") != null ) {
+				total = total + Double.parseDouble(dat.get("totalplanillado").toString());
+			}
+		}
 		FuncionesGenerales genera = new FuncionesGenerales();
 		
 		Map<String, Object> params = empresaService.consultarDatosEmpresa();
 		params.put("nombrereporte", "CONSOLIDADO DE CONSUMO POR MES");
 		params.put("anio", anio);
 		params.put("mes", mes);
+		params.put("totalgeneral", String.valueOf( total ));
 		
 		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
 		byte[] bytes = genera.generarReportePDF("rptConsolidadoConsumo", params, source);
@@ -266,6 +272,108 @@ public class PlanillaRestController {
 		headers.setContentDisposition(contentDisposition);
 		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
 				.body(bytes);
-
+	}
+	
+	@GetMapping(value = "/consultarplanilla/{idanio}/{idmes}")
+	public ResponseEntity<?> consultarplanilla(@PathVariable Integer idanio, @PathVariable Integer idmes) {
+		List<LinkedHashMap<String, Object>> res = null;
+		Map<String, Object> response = new HashMap<>();;
+		try {
+			res = this.planillaService.consultarPlanillaPorAnioMes(idanio, idmes);
+		} catch (DataAccessException e) {
+			response.put("mensaje", "Error al realizar la consulta");
+			response.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(res, HttpStatus.OK);
+	}
+	
+	@GetMapping(value = "/consultarplanillafirmada/{idanio}/{idmes}")
+	public ResponseEntity<?> consultarplanillafirmada(@PathVariable Integer idanio, @PathVariable Integer idmes) {
+		List<LinkedHashMap<String, Object>> res = null;
+		Map<String, Object> response = new HashMap<>();;
+		try {
+			res = this.planillaService.consultarPlanillaFirmadaPorAnioMes(idanio, idmes);
+		} catch (DataAccessException e) {
+			response.put("mensaje", "Error al realizar la consulta");
+			response.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(res, HttpStatus.OK);
+	}
+	
+	@PostMapping(value = "/firmarfacturamasiva")
+	public ResponseEntity<?> firmarfacturamasiva( @RequestBody List<Map<String, Object>> param ) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			response = this.planillaService.firmarDocumentosMasivos(param);
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
+	}
+	
+	@PostMapping(value = "/enviarcomprobante")
+	public ResponseEntity<?> enviarcomprobante( @RequestBody List<Map<String, Object>> param ) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			response = this.planillaService.enviarcomprobantes(param);
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
+	}
+	
+	@PostMapping(value = "/autorizarcomprobante")
+	public ResponseEntity<?> autorizarcomprobante( @RequestBody List<Map<String, Object>> param ) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			response = this.planillaService.autorizarcomprobantes(param);
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
+	}
+	
+	@GetMapping(value = "/consultarplanillarecibidas/{idanio}/{idmes}")
+	public ResponseEntity<?> consultarplanillarecibidas(@PathVariable Integer idanio, @PathVariable Integer idmes) {
+		List<LinkedHashMap<String, Object>> res = null;
+		Map<String, Object> response = new HashMap<>();;
+		try {
+			res = this.planillaService.consultarPlanillaRecibidadPorAnioMes(idanio, idmes);
+		} catch (DataAccessException e) {
+			response.put("mensaje", "Error al realizar la consulta");
+			response.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(res, HttpStatus.OK);
+	}
+	
+	@GetMapping(value = "/consultarfacturamensual/{idfactura}")
+	public ResponseEntity<byte[]> consultarfacturamensual(@PathVariable Integer idfactura ) {
+		byte[] bytes = planillaService.generarFactura(idfactura);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptPlanilla" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+	}
+	
+	@GetMapping(value = "/imprimirfacturasri/{id}")
+	public ResponseEntity<byte[]> imprimirfacturasri( @PathVariable Integer id ) throws JsonMappingException, JsonProcessingException {
+		byte[] bytes = this.planillaService.generarFactura(id);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptReporte" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
 	}
 }
