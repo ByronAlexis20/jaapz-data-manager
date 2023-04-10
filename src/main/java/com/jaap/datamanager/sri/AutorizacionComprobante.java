@@ -70,7 +70,6 @@ public class AutorizacionComprobante {
                 		+ "<soap:Body><ns2:autorizacionComprobanteResponse xmlns:ns2=\"http://ec.gob.sri.ws.autorizacion\">"
                 		+ "<RespuestaAutorizacionComprobante><claveAccesoConsultada>" + claveacceso 
                 		+ "</claveAccesoConsultada><numeroComprobantes>1</numeroComprobantes><autorizaciones>", "");
-                System.out.println("xml respuesta " + xml);
                 try {
                     SAXBuilder builder = new SAXBuilder();
                     InputStream stream = new ByteArrayInputStream(xml.getBytes("UTF-8"));

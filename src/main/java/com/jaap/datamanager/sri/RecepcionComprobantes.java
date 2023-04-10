@@ -66,7 +66,6 @@ public class RecepcionComprobantes {
                 
                 xml = xml.replace("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ns2:validarComprobanteResponse xmlns:ns2=\"http://ec.gob.sri.ws.recepcion\">", "");
                 xml = xml.replace("</ns2:validarComprobanteResponse></soap:Body></soap:Envelope>", "");
-                System.out.println("xml respuesta " + xml);
                 try {
                     SAXBuilder builder = new SAXBuilder();
                     InputStream stream = new ByteArrayInputStream(xml.getBytes("UTF-8"));

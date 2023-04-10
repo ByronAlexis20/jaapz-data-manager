@@ -27,6 +27,8 @@ public class GenerarFacturaXml {
 		
 		OutputStream out = new FileOutputStream( rutaGenerados );
 		
+		System.out.println("ruta generado -->> " + rutaGenerados);
+		
 		Document doc = new Document();
 		Element factura = new Element("factura");
 		factura.setAttribute("id", "comprobante");
@@ -121,7 +123,7 @@ public class GenerarFacturaXml {
 		Element totalSinImpuestos = new Element("totalSinImpuestos");
 		totalSinImpuestos.setText( dataFactura.get("totalpagar").toString() );
 		infoFactura.addContent(totalSinImpuestos);
-		
+		System.out.println("TOTAL DESCUENTO: " + dataFactura.get("descuento").toString());
 		Element totalDescuento = new Element("totalDescuento");
 		totalDescuento.setText( dataFactura.get("descuento").toString() );
 		infoFactura.addContent(totalDescuento);
@@ -188,7 +190,7 @@ public class GenerarFacturaXml {
 		List<Map<String, Object>> detalleFactura = (List<Map<String, Object>>) dataFactura.get("detalles");
 
 		Element detalles = new Element("detalles");
-		
+		Integer item = 0;
 		for( Map<String, Object> det : detalleFactura ) {
 			Element detalle = new Element("detalle");
 			
@@ -209,11 +211,24 @@ public class GenerarFacturaXml {
 			detalle.addContent(precioUnitario);
 			
 			Element descuento = new Element("descuento");
-			descuento.setText( "0" );
+			if( item == 0 ) {
+				descuento.setText( dataFactura.get("descuento").toString() );
+				System.out.println("DESCUENTO: " + dataFactura.get("descuento").toString());
+			}else {
+				descuento.setText( "0" );
+				System.out.println("NO TIENE DESCUENTO");
+			}
 			detalle.addContent(descuento);
 			
 			Element precioTotalSinImpuesto = new Element("precioTotalSinImpuesto");
-			precioTotalSinImpuesto.setText( det.get("subtotal").toString() );
+			if( item == 0 ) {
+				System.out.println("Subtotal: " + Double.parseDouble( det.get("subtotal").toString() ));
+				System.out.println("Descuento" + Double.parseDouble( dataFactura.get("descuento").toString() ));
+				System.out.println("Total: " + String.valueOf( Double.parseDouble( det.get("subtotal").toString() ) -  Double.parseDouble( dataFactura.get("descuento").toString() ) ));
+				precioTotalSinImpuesto.setText( String.valueOf( Double.parseDouble( det.get("subtotal").toString() ) -  Double.parseDouble( dataFactura.get("descuento").toString() ) ));
+			}else {
+				precioTotalSinImpuesto.setText( det.get("subtotal").toString() );
+			}
 			detalle.addContent(precioTotalSinImpuesto);
 			
 			Element impuestos = new Element("impuestos");
@@ -233,7 +248,11 @@ public class GenerarFacturaXml {
 			impuesto.addContent(tarifaImp);
 			
 			Element baseImponibleImp = new Element("baseImponible");
-			baseImponibleImp.setText( det.get("subtotal").toString() );
+			if( item == 0 ) {
+				baseImponibleImp.setText( String.valueOf( Double.parseDouble( det.get("subtotal").toString() ) -  Double.parseDouble( dataFactura.get("descuento").toString() ) ));
+			}else {
+				baseImponibleImp.setText( det.get("subtotal").toString() );
+			}
 			impuesto.addContent(baseImponibleImp);
 			
 			Element valorImp = new Element("valor");
@@ -245,15 +264,14 @@ public class GenerarFacturaXml {
 			detalle.addContent( impuestos );
 			
 			detalles.addContent(detalle);
+			item ++;
 		}
 		
 		doc.getRootElement().addContent(detalles);
 		XMLOutputter xmlOutputter = new XMLOutputter();
-		System.out.println("ruta generado -->> " + rutaGenerados);
 		// pretty print
 		xmlOutputter.setFormat(Format.getPrettyFormat());
 		xmlOutputter.output(doc, out);
-
 	}
 
 }

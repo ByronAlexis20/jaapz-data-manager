@@ -302,6 +302,20 @@ public class PlanillaRestController {
 		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(res, HttpStatus.OK);
 	}
 	
+	@GetMapping(value = "/consultarplanillafirmadaporestado/{idanio}/{idmes}/{estado}")
+	public ResponseEntity<?> consultarplanillafirmadaporestado(@PathVariable Integer idanio, @PathVariable Integer idmes, @PathVariable String estado) {
+		List<LinkedHashMap<String, Object>> res = null;
+		Map<String, Object> response = new HashMap<>();;
+		try {
+			res = this.planillaService.consultarPlanillaFirmadaPorAnioMesEstado(idanio, idmes, estado);
+		} catch (DataAccessException e) {
+			response.put("mensaje", "Error al realizar la consulta");
+			response.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<List<LinkedHashMap<String, Object>>>(res, HttpStatus.OK);
+	}
+	
 	@PostMapping(value = "/firmarfacturamasiva")
 	public ResponseEntity<?> firmarfacturamasiva( @RequestBody List<Map<String, Object>> param ) {
 		Map<String, Object> response = new HashMap<>();
@@ -375,5 +389,18 @@ public class PlanillaRestController {
 		headers.setContentDisposition(contentDisposition);
 		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
 				.body(bytes);
+	}
+	
+	@PostMapping(value = "/enviarCorreoMasivo")
+	public ResponseEntity<?> enviarCorreoMasivo( @RequestBody List<Map<String, Object>> param ) {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			response = this.planillaService.enviarCorreoMasivos( param );
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
 	}
 }

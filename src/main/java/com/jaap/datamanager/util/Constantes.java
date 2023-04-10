@@ -35,4 +35,7 @@ public class Constantes {
 	public static final String direccionXmlEnviados = "";
 	
 	public static String cadenaCaracteresClaveAcceso = "12345678";
+	
+	public static String CORREO_ORIGEN = "jaap_zapotal@hotmail.com";
+	public static String CONTRASENIA_ORIGEN = "jzapotal2022";
 }

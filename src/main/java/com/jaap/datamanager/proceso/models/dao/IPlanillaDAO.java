@@ -56,4 +56,7 @@ public interface IPlanillaDAO extends CrudRepository<Planilla, Integer> {
 	
 	@Query(value = "select public.fun_consultar_planilla_enviar( ?1 );", nativeQuery = true)
 	public String consultarPlanillaEnviar(Integer id);
+	
+	@Query(value = "select public.fun_consultar_datos_dashboard( ?1, ?2, ?3, ?4 );", nativeQuery = true)
+	public String consultarDatosDashboard(Integer dia, Integer mes, Integer anio, String usuario);
 }

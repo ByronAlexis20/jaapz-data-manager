@@ -36,9 +36,13 @@ public interface IPlanillaService {
 	
 	public List<LinkedHashMap<String, Object>> consultarPlanillaFirmadaPorAnioMes(Integer idanio, Integer idmes);
 	
+	public List<LinkedHashMap<String, Object>> consultarPlanillaFirmadaPorAnioMesEstado(Integer idanio, Integer idmes, String estado);
+	
 	public List<LinkedHashMap<String, Object>> consultarPlanillaRecibidadPorAnioMes(Integer idanio, Integer idmes);
 	
 	public Map<String, Object> firmarDocumentosMasivos(List<Map<String, Object>> param);
+	
+	public Map<String, Object> enviarCorreoMasivos(List<Map<String, Object>> param);
 	
 	public Map<String, Object> enviarcomprobantes(List<Map<String, Object>> param);
 	
