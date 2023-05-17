@@ -32,6 +32,11 @@ public class Perfil implements Serializable, Cloneable {
 	public Perfil() {
 		super();
 	}
+	
+	public Perfil( Integer id ) {
+		super();
+		this.id = id;
+	}
 
 	public Perfil(Integer id, String nombre, String descripcion, String estado) {
 		super();
