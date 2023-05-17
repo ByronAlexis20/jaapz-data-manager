@@ -851,7 +851,8 @@ public class PlanillaImpl implements IPlanillaService {
 							JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
 							FuncionesGenerales genera = new FuncionesGenerales();
 							byte[] bytes = genera.generarReportePDF("factura", parametros, source);
-							String asunto = "Factura mes " + dat.get("mes").toString() + " del año " + dat.get("anio").toString() + " - JAAPZ";
+							//String asunto = "Factura mes " + dat.get("mes").toString() + " del año " + dat.get("anio").toString() + " - JAAPZ";
+							String asunto = "Factura de consumo de agua JAAPZ";
 							String mensaje = "Estimado/a: " + dat.get("cliente").toString() + "\n";
 							mensaje = mensaje + "Se ha generado su factura electrónica. \n";
 							mensaje = mensaje + "No: " + dat.get("factura").toString() + ". \n";
@@ -865,7 +866,7 @@ public class PlanillaImpl implements IPlanillaService {
 							System.out.println("Correo a enviar: " + dat.get("email").toString());
 							System.out.println("clave acceso: " + conf.getRutaautorizados() + dat.get("claveacceso").toString() + ".xml");
 							//agregar informacion para ver la factura desde el sistema
-							//this.enviarcorreo(dat.get("email").toString(), asunto, mensaje, bytes, conf.getRutaautorizados() + dat.get("claveacceso").toString() + ".xml", dat.get("claveacceso").toString() + ".xml");
+							this.enviarcorreo(dat.get("email").toString(), asunto, mensaje, bytes, conf.getRutaautorizados() + dat.get("claveacceso").toString() + ".xml", dat.get("claveacceso").toString() + ".xml");
 						}
 					}
 				}	

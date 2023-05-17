@@ -18,7 +18,10 @@ public interface IUsuarioDAO extends CrudRepository<Usuario, Integer> {
 	@Query("Select u from Usuario u where u.estado = 'A' and u.id = ?1")
 	public Usuario buscarPorIdUsuario(Integer idUsuario);
 	
-	@Query("Select u from Usuario u order by u.estado desc")
+	@Query("Select u from Usuario u where u.estado = 'A' order by u.estado desc")
 	public List<Usuario> buscarUsuariosActivos();
+	
+	@Query("Select u from Usuario u where u.cliente.id = ?1 and u.estado = 'A'")
+	public Usuario buscarPorIdCliente(Long idUsuario);
 	
 }

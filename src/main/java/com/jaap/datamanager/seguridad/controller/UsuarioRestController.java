@@ -129,4 +129,18 @@ public class UsuarioRestController {
 						"attachment; filename=\"" + dataActual.getCedula() + "\"")
 				.body(re);
 	}
+	
+	@GetMapping(value = "/crearUsuarioCliente")
+	public ResponseEntity<?> crearUsuarioCliente() {
+		Map<String, Object> response = new HashMap<>();
+		try {
+			response = usuarioService.buscarUsuariosActivos();
+		} catch (DataAccessException e) {
+			response.put("mensaje: ", "Error al buscar");
+			response.put("error: ", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		
+		return new ResponseEntity<List<Usuario>>(data, HttpStatus.OK);
+	}
 }
