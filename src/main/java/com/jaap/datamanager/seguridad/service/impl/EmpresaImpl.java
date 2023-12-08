@@ -39,7 +39,6 @@ public class EmpresaImpl implements IEmpresaService {
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			String data = this.empresaDAO.consultarDatosEmpresa();
-			System.out.println(data);
 			List<Map<String, Object>> list = objectMapper.readValue(data, List.class);
 			for(Map<String, Object> obj : list) {
 				resultado = obj;

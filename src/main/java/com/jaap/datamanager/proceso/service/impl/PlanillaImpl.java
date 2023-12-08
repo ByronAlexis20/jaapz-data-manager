@@ -228,6 +228,27 @@ public class PlanillaImpl implements IPlanillaService {
 		}
 		return retorno;
 	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public Map<String, Object> consultarDeudas(String fecha) {
+		Map<String, Object> retorno = new HashMap<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarDeudas( fecha );
+			if(data != null) {
+				List<LinkedHashMap<String, Object>> ret = objectMapper.readValue(data, List.class);
+				for(LinkedHashMap<String, Object> obj : ret) {
+					retorno.put("datos", (List<LinkedHashMap<String, Object>>) obj.get("datos"));
+					retorno.put("total", obj.get("totalgeneral"));
+				}
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -440,6 +461,74 @@ public class PlanillaImpl implements IPlanillaService {
 	@SuppressWarnings("unchecked")
 	@Override
 	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarReporteHistorialUsuario(Integer idcliente, Integer anio){
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarReporteHistorialUsuario(idcliente, anio);
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarReporteUsuarioAlDia(){
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarReporteUsuarioAlDia();
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarReporteNominaConsumidores(){
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarReporteNominaConsumidores();
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
+	public List<LinkedHashMap<String, Object>> consultarReporteUsuarioOrdenCorte(){
+		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			String data = this.planillaDAO.consultarReporteUsuarioOrdenCorte();
+			if(data != null) {
+				retorno = objectMapper.readValue(data, List.class);
+			}
+		}catch(Exception ex) {
+			System.out.println(ex.getMessage());
+		}
+		return retorno;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	@Transactional
 	public List<LinkedHashMap<String, Object>> consultarPlanillaPorAnioMes(Integer idanio, Integer idmes){
 		List<LinkedHashMap<String, Object>> retorno = new ArrayList<>();
 		try {
@@ -571,7 +660,7 @@ public class PlanillaImpl implements IPlanillaService {
 					String jsonBus = objectMapper.writeValueAsString(mpBus);
 					this.planillaDAO.procesoPlanila(jsonBus, "ACAS");
 					
-					this.enviarCorreoDesdeAutorizar( Integer.parseInt( dat.get("id").toString() ));
+					//this.enviarCorreoDesdeAutorizar( Integer.parseInt( dat.get("id").toString() ));
 				}
 			}
 			retorno.put("estado", "ok");

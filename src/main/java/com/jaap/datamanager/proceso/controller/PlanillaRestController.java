@@ -1,5 +1,7 @@
 package com.jaap.datamanager.proceso.controller;
 
+import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -76,7 +78,6 @@ public class PlanillaRestController {
 		for(Object[] obj : buscarPlanilla) {
 			idplanilla = Integer.parseInt(obj[0].toString());
 		}
-		System.out.println("numero de planilla " + idplanilla);
 		List<Map<String, Object>> dataFinal = new ArrayList<>();
 		dataFinal = this.planillaService.imprimirPlanilla(idplanilla);
 		FuncionesGenerales genera = new FuncionesGenerales();
@@ -150,6 +151,46 @@ public class PlanillaRestController {
 
 	}
 	
+	@SuppressWarnings("unchecked")
+	@GetMapping(value = "/imprimirdeudas/{usuario}/{dia}/{mes}/{anio}")
+	public ResponseEntity<byte[]> imprimirDeudasPorFecha( @PathVariable String usuario, @PathVariable String dia, @PathVariable String mes, @PathVariable String anio ) throws JsonMappingException, JsonProcessingException {
+		
+		String fechaString = String.format("%s-%s-%s", anio, mes, dia);
+		
+		Map<String, Object> data = new HashMap<>();
+		List<LinkedHashMap<String, Object>> dataFinal = new ArrayList<>();
+		data = this.planillaService.consultarDeudas( fechaString );
+		dataFinal = (List<LinkedHashMap<String, Object>>) data.get("datos");
+		String totalgeneral = data.get("total").toString();
+		FuncionesGenerales genera = new FuncionesGenerales();
+		//Date fecha = new Date();
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date fechaDate = null;
+
+        try {
+            fechaDate = sdf.parse(fechaString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("nombrereporte", "USUARIOS CON CUENTA PENDIENTE DE COBRO");
+		params.put("fecha", FuncionesGenerales.fechaString(fechaDate));
+		params.put("usuario", usuario);
+		params.put("totaldeuda", totalgeneral);
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptDeudas", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptDeudas" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+
+	}
+	
 	@GetMapping(value = "/consultardetalleplanilla/{idcliente}/{idanio}/{idmes}")
 	public ResponseEntity<?> consultardetalleplanilla( @PathVariable Integer idcliente, @PathVariable Integer idanio, @PathVariable Integer idmes ) {
 		List<LinkedHashMap<String, Object>> listaClientes = null;
@@ -160,7 +201,6 @@ public class PlanillaRestController {
 			for(Object[] obj : buscarPlanilla) {
 				idplanilla = Integer.parseInt(obj[0].toString());
 			}
-			System.out.println("numero de planilla " + idplanilla);
 			
 			listaClientes = this.planillaService.consultarDetallePlanilla(idplanilla);
 		} catch (DataAccessException e) {
@@ -246,9 +286,6 @@ public class PlanillaRestController {
 	
 	@GetMapping(value = "/imprimirreporteconsolidadoconsumo/{idmes}/{idanio}/{mes}/{anio}")
 	public ResponseEntity<byte[]> imprimirReporteConsolidadoConsumo( @PathVariable Integer idmes, @PathVariable Integer idanio,@PathVariable String mes, @PathVariable String anio ) throws JsonMappingException, JsonProcessingException {
-		SimpleDateFormat formatter = new SimpleDateFormat("hh:mm:ss");
-		System.out.println(new Date());
-		System.out.println(formatter.format(new Date()));
 		List<LinkedHashMap<String, Object>> dataFinal = this.planillaService.consultarReporteConsolidadoConsumo(idanio, idmes);
 		Double total = 0.0;
 		for( LinkedHashMap<String, Object> dat : dataFinal ) {
@@ -402,5 +439,154 @@ public class PlanillaRestController {
 			return new ResponseEntity<Map<String, Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@GetMapping(value = "/imprimirreportehistorialusuario/{idusuario}/{anio}")
+	public ResponseEntity<byte[]> imprimirReporteHistorialUsuario( @PathVariable Integer idusuario, @PathVariable Integer anio) throws JsonMappingException, JsonProcessingException {
+		List<LinkedHashMap<String, Object>> dataFinal = this.planillaService.consultarReporteHistorialUsuario(idusuario, anio);
+		Double consumoanual = 0.0;
+		String cliente = "";
+		Double valorplanilla = 0.0;
+		Double totalPagado = 0.0;
+		Double deuda = 0.0;
+		Double totalDeuda = 0.0;
+		for( LinkedHashMap<String, Object> dat : dataFinal ) {
+			valorplanilla = 0.0;
+			totalPagado = 0.0;
+			deuda = 0.0;
+			valorplanilla = Double.parseDouble( dat.get("valor_planilla").toString() );
+			consumoanual = consumoanual + Double.parseDouble(dat.get("valor_planilla").toString());
+			cliente = dat.get("cliente").toString();
+			
+			if(dat.get("detallepagos") != null) {
+				for( HashMap<String, Object> pago : (List<HashMap<String, Object>>)dat.get("detallepagos")) {
+					if(pago.get("valor") != null) {
+						totalPagado = totalPagado + Double.parseDouble(pago.get("valor").toString());
+					}
+				}
+			}
+			deuda = valorplanilla - totalPagado;
+			totalDeuda = totalDeuda + deuda;
+			dat.put("deuda", String.valueOf(deuda));
+		}
+		FuncionesGenerales genera = new FuncionesGenerales();
+		Date fecha = new Date();
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("NOMBRE_REPORTE", "Historial de usuario");
+		params.put("USUARIO", cliente);
+		params.put("FECHA", FuncionesGenerales.fechaString(fecha));
+		params.put("ANIO", String.valueOf( anio ));
+		params.put("consumo_anual", String.valueOf( consumoanual ));
+		params.put("total_deuda", String.valueOf( totalDeuda ));
+		params.put("SUBREPORT_DETALLE_PLANILLA", new String(Constantes.rutaArchivos + "reportes/rptHistorialUsuarioDetallePlanilla.jasper"));
+		params.put("SUBREPORT_DETALLE_PAGO", new String(Constantes.rutaArchivos + "reportes/rptHistorialUsuarioDetallePago.jasper"));
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptHistorialUsuario", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptHistorialUsuario" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+	}
+	
+	@GetMapping(value = "/imprimirusuarioordencorte/{usuario}")
+	public ResponseEntity<byte[]> imprimirUsuarioOrdenCorte( @PathVariable String usuario ) throws JsonMappingException, JsonProcessingException {
+		List<LinkedHashMap<String, Object>> dataFinal = new ArrayList<>();
+		dataFinal = this.planillaService.consultarReporteUsuarioOrdenCorte();
+		DecimalFormat formato = new DecimalFormat("0.00");
+		Double total = 0.0;
+		for(LinkedHashMap<String, Object> dat : dataFinal) {
+			total = total + Double.parseDouble( dat.get("deuda").toString() );
+		}
+		
+		FuncionesGenerales genera = new FuncionesGenerales();
+		Date fecha = new Date();
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("nombrereporte", "USUARIOS CON CUENTA PENDIENTE DE COBRO");
+		params.put("fecha", FuncionesGenerales.fechaString(fecha));
+		params.put("usuario", usuario);
+		params.put("totaldeuda", formato.format(total) );
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptUsuarioOrdenCorte", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptUsuarioOrdenCorte" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+
+	}
+	
+	@GetMapping(value = "/imprimirusuarioaldia/{usuario}")
+	public ResponseEntity<byte[]> imprimirUsuarioAlDia( @PathVariable String usuario ) throws JsonMappingException, JsonProcessingException {
+		List<LinkedHashMap<String, Object>> dataFinal = new ArrayList<>();
+		dataFinal = this.planillaService.consultarReporteUsuarioAlDia();
+		
+		FuncionesGenerales genera = new FuncionesGenerales();
+		Date fecha = new Date();
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("nombrereporte", "USUARIOS AL DÍA");
+		params.put("fecha", FuncionesGenerales.fechaString(fecha));
+		params.put("usuario", usuario);
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptUsuarioAlDia", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptUsuarioAlDia" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+
+	}
+	
+	@GetMapping(value = "/imprimirnominaconsumidores/{usuario}")
+	public ResponseEntity<byte[]> imprimirNominaConsumidores( @PathVariable String usuario ) throws JsonMappingException, JsonProcessingException {
+		List<LinkedHashMap<String, Object>> dataFinal = new ArrayList<>();
+		dataFinal = this.planillaService.consultarReporteNominaConsumidores();
+		
+		FuncionesGenerales genera = new FuncionesGenerales();
+		Date fecha = new Date();
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("nombrereporte", "NÓMINA DE CONSUMIDORES");
+		params.put("fecha", FuncionesGenerales.fechaString(fecha));
+		params.put("usuario", usuario);
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptNominaConsumidores", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptNominaConsumidores" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+
+	}
+	
+	@GetMapping(value = "/imprimirnominaconsumidoresfirmar/{usuario}")
+	public ResponseEntity<byte[]> imprimirNominaConsumidoresFirmar( @PathVariable String usuario ) throws JsonMappingException, JsonProcessingException {
+		List<LinkedHashMap<String, Object>> dataFinal = new ArrayList<>();
+		dataFinal = this.planillaService.consultarReporteNominaConsumidores();
+		
+		FuncionesGenerales genera = new FuncionesGenerales();
+		Date fecha = new Date();
+		Map<String, Object> params = empresaService.consultarDatosEmpresa();
+		params.put("nombrereporte", "NÓMINA DE CONSUMIDORES");
+		params.put("fecha", FuncionesGenerales.fechaString(fecha));
+		params.put("usuario", usuario);
+		
+		JRBeanCollectionDataSource source = new JRBeanCollectionDataSource(dataFinal, false);
+		byte[] bytes = genera.generarReportePDF("rptNominaConsumidoresFirmar", params, source);
+		ContentDisposition contentDisposition = ContentDisposition.builder("inline")
+				.filename("rptNominaConsumidoresFirmar" + ".pdf").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentDisposition(contentDisposition);
+		return ResponseEntity.ok().header("Content-Type", "application/pdf; charset=UTF-8").headers(headers)
+				.body(bytes);
+
 	}
 }

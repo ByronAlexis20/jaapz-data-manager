@@ -30,6 +30,9 @@ public interface IPlanillaDAO extends CrudRepository<Planilla, Integer> {
 	@Query(value = "select public.fun_consultar_deudas();", nativeQuery = true)
 	public String consultarDeudas();
 	
+	@Query(value = "select public.fun_consultar_deudas( ?1 );", nativeQuery = true)
+	public String consultarDeudas(String fecha);
+	
 	@Query(value = "select public.fun_buscar_detalle_planilla( ?1 );", nativeQuery = true)
 	public String consultarDetallePlanilla(Integer idplanilla);
 	
@@ -59,4 +62,16 @@ public interface IPlanillaDAO extends CrudRepository<Planilla, Integer> {
 	
 	@Query(value = "select public.fun_consultar_datos_dashboard( ?1, ?2, ?3, ?4 );", nativeQuery = true)
 	public String consultarDatosDashboard(Integer dia, Integer mes, Integer anio, String usuario);
+	
+	@Query(value = "select public.fun_reporte_historial_usuario( ?1, ?2 );", nativeQuery = true)
+	public String consultarReporteHistorialUsuario(Integer idcliente, Integer anio);
+	
+	@Query(value = "select public.fun_reporte_usuarios_orden_corte();", nativeQuery = true)
+	public String consultarReporteUsuarioOrdenCorte();
+	
+	@Query(value = "select public.fun_reporte_usuarios_al_dia();", nativeQuery = true)
+	public String consultarReporteUsuarioAlDia();
+	
+	@Query(value = "select public.fun_reporte_nomina_consumidores();", nativeQuery = true)
+	public String consultarReporteNominaConsumidores();
 }

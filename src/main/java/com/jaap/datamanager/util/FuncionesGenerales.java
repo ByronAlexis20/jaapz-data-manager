@@ -159,7 +159,7 @@ public class FuncionesGenerales {
 					}
 				}
 			}
-			fechaStr = fechaStr + diaEspanol + ", " + dia + " de" + obtenerMesPorFechaDate(fecha) + " de " + anio;
+			fechaStr = fechaStr + diaEspanol + ", " + dia + " de " + obtenerMesPorFechaDate(fecha) + " de " + anio;
 		}catch(Exception ex) {
 			
 		}

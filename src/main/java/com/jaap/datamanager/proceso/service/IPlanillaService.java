@@ -20,6 +20,8 @@ public interface IPlanillaService {
 	
 	public Map<String, Object> consultarDeudas();
 	
+	public Map<String, Object> consultarDeudas(String fecha);
+	
 	public List<LinkedHashMap<String, Object>> consultarDetallePlanilla(Integer idplanilla);
 	
 	public Map<String, Object> grabarDetallePlanilla(Map<String, Object> param);
@@ -31,6 +33,14 @@ public interface IPlanillaService {
 	public List<LinkedHashMap<String, Object>> consultarReporteTomaLecturas();
 	
 	public List<LinkedHashMap<String, Object>> consultarReporteConsolidadoConsumo(Integer idanio, Integer idmes);
+	
+	public List<LinkedHashMap<String, Object>> consultarReporteHistorialUsuario(Integer idcliente, Integer anio);
+	
+	public List<LinkedHashMap<String, Object>> consultarReporteUsuarioOrdenCorte();
+	
+	public List<LinkedHashMap<String, Object>> consultarReporteUsuarioAlDia();
+	
+	public List<LinkedHashMap<String, Object>> consultarReporteNominaConsumidores();
 	
 	public List<LinkedHashMap<String, Object>> consultarPlanillaPorAnioMes(Integer idanio, Integer idmes);
 	
